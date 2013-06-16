@@ -5,7 +5,9 @@ grammar PB::Grammar {
     token proto         { [<message> | <package> | <import> | <option> | <enum> | <extend> | <service> | ';']* }
 
     # comments and whitespace
-    token comment       { '//' .*? $$ }
+    proto token comment { * }
+    token comment:sym<single-line> { '//' .*? $$ } # todo test \N*
+    token comment:sym<multi-line>  { '/*' .*? '*/' }
     token ws            { <!ww> [\s | <.comment>]* }
 
     # import
@@ -45,7 +47,7 @@ grammar PB::Grammar {
 
     # option
     rule opt-body       { <opt-name> '=' <constant> }
-    token opt-name      { '.'? <opt-name-tok> ('.' <opt-name>)* }
+    token opt-name      { '.'? <opt-name-tok> ('.' <opt-name-tok>)* }
     token opt-name-tok  { [<cust-opt-name> | <dotted-ident>] }
     token cust-opt-name { '(' ~ ')' ['.'? <dotted-ident>] }
 
@@ -71,17 +73,18 @@ grammar PB::Grammar {
     token constant:sym<symbol> { <ident> }
 
     # numbers
-    token constant:sym<float>    { '-'? \d+ '.'? \d* [<[eE]> ['+'|'-']? \d+]? <!before <[xX]>> } # <!before> here to make this rule not match 0 in a hex
+    token sign                   { ['-' | '+']? }
+    token constant:sym<float>    { <sign> \d+ '.'? \d* [<[eE]> ['+'|'-']? \d+]? <!before <[xX]>> } # <!before> here to make this rule not match 0 in a hex
     token constant:sym<bool>     { 'true' | 'false' }
     token constant:sym<nan>      { 'nan' }
-    token constant:sym<inf>      { '-'? 'inf' }
+    token constant:sym<inf>      { <sign> 'inf' }
 
     # int
     token constant:sym<int> { <int-lit> }
     proto token int-lit     { * }
-    token int-lit:sym<dec>  { '-'? <[1..9]>\d* }
-    token int-lit:sym<hex>  { '-'? '0' <[xX]> <.xdigit>+ }
-    token int-lit:sym<oct>  { '-'? '0' <[0..7]>* }
+    token int-lit:sym<dec>  { <sign> <[1..9]>\d* }
+    token int-lit:sym<hex>  { <sign> '0' <[xX]> <.xdigit>+ }
+    token int-lit:sym<oct>  { <sign> '0' <[0..7]>* }
 
     # string
     token constant:sym<str>             { <str-lit> }

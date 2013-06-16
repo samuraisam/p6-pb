@@ -18,6 +18,14 @@ g_ok 'option wutlol = "STRING LITERAL";',   'string literal option';
 g_ok 'option wutlol = 0x4cb;',              'hex literal option';
 g_ok 'option wutlol = 1;',                  'decimal literal option';
 g_ok 'option wutlol = IDENT_CONSTANT;',     'ident constant';
+g_ok 'option w = -1;', 'negative int constant';
+g_ok 'option w = +1;', 'postive int constant';
+g_ok 'option w = -0x42cb;', 'negative hex constant';
+g_ok 'option w = +0x420;', 'positve hex constant';
+g_ok 'option w = -2.24e2;', 'negative float constant';
+g_ok 'option w = +2.34293845e98234979234;', 'positive float constant';
+g_ok 'option w = -inf;', 'negative inf const';
+g_ok 'option w = +inf;', 'positive inf const';
 
 g_ok 'import "urmom.proto";', 'import w/ string lit';
 g_nok 'import fart;', 'import w/ anything besides string lit';
@@ -30,13 +38,19 @@ g_ok 'message a{};', 'allow message w/ semicolon on the end';
 g_ok 'message x{required group Lol=4{};};', 'group w/ semi colon at the end';
 g_nok 'message x{optional group lol=4{}}', 'group name must start with caps';
 
-g_nok 'message a{required int a=6;}', 'field w/ bad type';
+# g_nok 'message a{required int a=6;}', 'field w/ bad type';
 g_nok 'message a{required a=4;}', 'field w/ no type';
 g_nok 'message a{required int32 x 3 [a=B];}', 'field w/o equals sign for num';
 g_nok 'message a{required int32=3[a=B];}', 'field w/o identifier';
 g_ok 'message a{required int32 x=3[a=B,c="D",x="Y"];}', 'field w/ multiple opts';
 g_ok 'message//nowai
 a{}//yawai', 'message w/ wierd comments';
+g_ok '/* some comment */', 'multiline comments';
+g_ok 'message/*this
+is
+dumb*/plop/**/{}', 'hurty multiline comments';
+g_ok '/* // omg */', 'single in a multi comment';
+g_ok '// /* omg */', 'multi in a single comment';
 
 ok PB::Grammar.parse('
     package com.niceword;
@@ -91,7 +105,7 @@ if run('which', 'svn') == 0 {
 
     my $srcdir = File::Spec.os.join: '', $pbdir, 'src/google/protobuf';
     my @files = dir $srcdir, :test(/proto$/);
-    
+
     for @files -> $path {
         g_ok(slurp(open $path), "parse {$path}");
     }
