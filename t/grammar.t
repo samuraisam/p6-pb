@@ -52,6 +52,17 @@ dumb*/plop/**/{}', 'hurty multiline comments';
 g_ok '/* // omg */', 'single in a multi comment';
 g_ok '// /* omg */', 'multi in a single comment';
 
+g_ok 'option w = { x: B, y: C };', 'sub message option body';
+g_ok 'option w = { x: "omg" y: "nowai"};', 'sub-message option body w/o comma separation';
+g_ok 'option w = { sub { x: Y } };', 'sub message option body w/ block';
+g_ok 'option w = { 
+    ZZZ { 
+        [foo.bar] { 
+            s: "MY STRING"
+        }
+    }
+};', 'sub message with block that also has a block';
+
 ok PB::Grammar.parse('
     package com.niceword;
     option nice_thing = "face";

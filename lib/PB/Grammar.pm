@@ -36,8 +36,8 @@ grammar PB::Grammar {
     rule message        { 'message' <ident> <message-body> }
     rule message-body   { '{' [<message> | <field> | <extensions> | <option> | <group> | <enum> | <extend> | ';']* '}' }
     rule field          { <label> <type> <ident> '=' <field-num> <field-opts>? ';' }
-    rule field-opts     { '[' (<field-opt> ','?)* ']' } # todo: make this turn into a prettier ast
-    token field-opt     { [<default-opt> | <opt-body>] }    
+    rule field-opts     { '[' (<field-opt> ','?)* ']' } # todo: make this turn into a prettier ast, also disallow trailing comma
+    token field-opt     { [<default-opt> | <opt-body>] }
     rule default-opt    { 'default' <.ws> '=' <constant> }
     rule extensions     { 'extensions' <extension> (',' <extension>)* ';' }
     rule extension      { <int-lit> ['to' [<int-lit> | 'max']]? }
@@ -46,15 +46,21 @@ grammar PB::Grammar {
     # commonly used tokens
 
     # option
-    rule opt-body       { <opt-name> '=' <constant> }
+    rule opt-body       { <opt-name> '=' [<constant> | <submsg>] }
     token opt-name      { '.'? <opt-name-tok> ('.' <opt-name-tok>)* }
     token opt-name-tok  { [<cust-opt-name> | <dotted-ident>] }
     token cust-opt-name { '(' ~ ')' ['.'? <dotted-ident>] }
 
+    rule submsg         { '{' ~ '}' [<pairlist> | <block>]* }
+    rule pair           { <ident> ':' <constant>}
+    rule pairlist       { <pair> (',' <pair>)* }
+    rule block          { [<ident> | <block-ident>] '{' ~ '}' [<pairlist> | <block>]* }
+    rule block-ident    { '[' ~ ']' [<dotted-ident>] }
+
     token type          { 'double' | 'float' | 'int32' | 'int64' | 'uint32' 
                         | 'uint64' | 'sint32' | 'sint64' | 'fixed32' 
                         | 'fixed64' | 'sfixed32' | 'sfixed64' | 'bool' 
-                        |  'string' | 'bytes' | <user-type> }
+                        | 'string' | 'bytes' | <user-type> }
 
     token user-type     { '.'? <dotted-ident> }
 
