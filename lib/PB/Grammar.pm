@@ -9,7 +9,8 @@ grammar PB::Grammar {
     token ws            { <!ww> [\s | <.comment>]* }
 
     # import
-    token import        { 'import' <.ws> <str-lit> <.ws> ';' <.ws> }
+    rule import         { 'import' <public>? <str-lit> ';' }
+    rule public         { 'public' }
 
     # package
     rule package        { 'package' <dotted-ident> ';' }
@@ -19,11 +20,12 @@ grammar PB::Grammar {
 
     # enum
     rule enum           { 'enum' <ident> '{' [<option> | <enum-field> | ';']* '}' } # todo: translate into  '{' ~ '}'
-    rule enum-field     { <ident> '=' <int-lit> ';' }
+    rule enum-field     { <ident> '=' <int-lit> <field-opts>? ';' }
 
     # service/rpc
     rule service        { 'service' <ident> '{' [<option> | <rpc> | ';']* '}' }
-    rule rpc            { 'rpc' <ident> '(' <user-type> ')' <.ws> 'returns' <.ws> '(' <user-type> ')' <.ws> ';' }
+    rule rpc            { 'rpc' <ident> '(' <user-type> ')' 'returns' '(' <user-type> ')' [<rpc-body>? | ';'] }
+    rule rpc-body       { '{' ~ '}' [<option>*] }
 
     # extend
     rule extend         { 'extend' <user-type> '{' [<field> | <group> | ';']* '}' }
@@ -36,25 +38,27 @@ grammar PB::Grammar {
     token field-opt     { [<default-opt> | <opt-body>] }    
     rule default-opt    { 'default' <.ws> '=' <constant> }
     rule extensions     { 'extensions' <extension> (',' <extension>)* ';' }
-    rule extension      { <int-lit> 'to' [<int-lit> | 'max'] }
+    rule extension      { <int-lit> ['to' [<int-lit> | 'max']]? }
     rule group          { <label> 'group' <camel-ident> '=' <int-lit> <message-body> }
 
     # commonly used tokens
 
-    rule opt-body       { <dotted-ident> '=' <constant> }
-
-    token constant      { [<float-lit> | <int-lit> | <bool-lit> | <str-lit> | <ident>] }
+    # option
+    rule opt-body       { <opt-name> '=' <constant> }
+    token opt-name      { '.'? <opt-name-tok> ('.' <opt-name>)* }
+    token opt-name-tok  { [<cust-opt-name> | <dotted-ident>] }
+    token cust-opt-name { '(' ~ ')' ['.'? <dotted-ident>] }
 
     token type          { 'double' | 'float' | 'int32' | 'int64' | 'uint32' 
                         | 'uint64' | 'sint32' | 'sint64' | 'fixed32' 
                         | 'fixed64' | 'sfixed32' | 'sfixed64' | 'bool' 
-                        |  'string' | 'bytes' }
+                        |  'string' | 'bytes' | <user-type> }
 
     token user-type     { '.'? <dotted-ident> }
 
     token label         { 'required' | 'optional' | 'repeated' }
 
-    token ident         { \w+ }
+    token ident         { <[a..zA..Z]>\w* }
 
     token dotted-ident  { <ident> ('.' <ident>)* }
 
@@ -62,25 +66,35 @@ grammar PB::Grammar {
 
     token field-num     { <int-lit> }
 
-    # int
-    proto token int-lit     { * }
-    token int-lit:sym<dec>  { <[1..9]>\d* }
-    token int-lit:sym<hex>  { '0' <[xX]> <.xdigit>+ }
-    token int-lit:sym<oct>  { '0' <[0..7]>+ }
+    proto token constant { * }
 
-    # other numbers
-    token float-lit         { \d+ '.' [\d+]? [<[eE]> ['+'|'-']? \d+]? }
-    token bool-lit          { 'true' | 'false' }
+    token constant:sym<symbol> { <ident> }
+
+    # numbers
+    token constant:sym<float>    { '-'? \d+ '.'? \d* [<[eE]> ['+'|'-']? \d+]? <!before <[xX]>> } # <!before> here to make this rule not match 0 in a hex
+    token constant:sym<bool>     { 'true' | 'false' }
+    token constant:sym<nan>      { 'nan' }
+    token constant:sym<inf>      { '-'? 'inf' }
+
+    # int
+    token constant:sym<int> { <int-lit> }
+    proto token int-lit     { * }
+    token int-lit:sym<dec>  { '-'? <[1..9]>\d* }
+    token int-lit:sym<hex>  { '-'? '0' <[xX]> <.xdigit>+ }
+    token int-lit:sym<oct>  { '-'? '0' <[0..7]>* }
 
     # string
+    token constant:sym<str>             { <str-lit> }
     proto token str-lit                 { * }
     token str-lit:sym<single-quoted>    { \' ~ \' ( <-[\\\x00\n']>+ | <str-escape> )* }
     token str-lit:sym<double-quoted>    { \" ~ \" ( <-[\\\x00\n"]>+ | <str-escape> )* }
 
-    # this is basically like saying token str-escape { [<hex> | <oct> | <char> ] }
     proto token str-escape              { * }
 
     token str-escape:sym<hex>           { '\\' <[xX]> <.xdigit> ** 1..2 }
     token str-escape:sym<oct>           { '\\' <[0..7]> ** 1..3 }
     token str-escape:sym<char>          { '\\' <[abfnrtv\\?'"]> }       # ' <- stupid syntax highlighting
 }
+
+my $fn = '/Users/samuelsutch/dev/p6fart/pb/t/data/protobuf-read-only/src/google/protobuf/unittest_custom_options.proto';
+# say PB::Grammar.parse(slurp(open $fn));

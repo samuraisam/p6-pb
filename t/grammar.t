@@ -76,19 +76,24 @@ ok PB::Grammar.parse('
     service things_that_do_stuff { rpc things (.stuff)returns (Trolololol);rpc wobble(lolwut)returns(noshing);}
 '), "test a big complex mofo";
 
+# download the unit test files from the offical google repo and test our grammar against them
 if run('which', 'svn') == 0 {
     say 'svn is installed... checking for protobuf repo';
+
     my $absdir = $?FILE.path.absolute.directory;
     my $pbdir = File::Spec.os.join: '', $absdir, 'data/protobuf-read-only';
+
     if !grep 'protobuf-read-only', dir $absdir {
         run 'svn', 'checkout', 'http://protobuf.googlecode.com/svn/trunk/', $pbdir;
     } else {
         run 'svn', 'update', $pbdir;
     }
+
     my $srcdir = File::Spec.os.join: '', $pbdir, 'src/google/protobuf';
     my @files = dir $srcdir, :test(/proto$/);
+    
     for @files -> $path {
-        g_ok(slurp(open $path), "parse $path");
+        g_ok(slurp(open $path), "parse {$path}");
     }
 } else {
     say 'svn is not installed... skipping official protobuf tests';
