@@ -76,7 +76,7 @@ grammar PB::Grammar {
 
     proto token constant { * }
 
-    token constant:sym<symbol> { <ident> }
+    token constant:sym<symbol>   { <ident> }
 
     # numbers
     token sign                   { ['-' | '+']? }
@@ -95,14 +95,17 @@ grammar PB::Grammar {
     # string
     token constant:sym<str>             { <str-lit> }
     proto token str-lit                 { * }
-    token str-lit:sym<single-quoted>    { \' ~ \' ( <-[\\\x00\n']>+ | <str-escape> )* }
-    token str-lit:sym<double-quoted>    { \" ~ \" ( <-[\\\x00\n"]>+ | <str-escape> )* }
+    token str-lit:sym<single-quoted>    { \' ~ \' <str-contents-single>* } #'
+    token str-lit:sym<double-quoted>    { \" ~ \" <str-contents-double>* } #"
+
+    token str-contents-single           { <-[\\\x00\n']>+ | <str-escape> } #'
+    token str-contents-double           { <-[\\\x00\n"]>+ | <str-escape> } #"
 
     proto token str-escape              { * }
 
-    token str-escape:sym<hex>           { '\\' <[xX]> <.xdigit> ** 1..2 }
-    token str-escape:sym<oct>           { '\\' <[0..7]> ** 1..3 }
-    token str-escape:sym<char>          { '\\' <[abfnrtv\\?'"]> }       # ' <- stupid syntax highlighting
+    token str-escape:sym<hex>           { '\\' <[xX]> <xdigit> ** 1..2 }
+    token str-escape:sym<oct>           { '\\' $<digit>=<[0..7]> ** 1..3 }
+    token str-escape:sym<char>          { '\\' $<char>=<[abfnrtv\\?'"]> }       # ' <- stupid syntax highlighting
 }
 
 my $fn = '/Users/samuelsutch/dev/p6fart/pb/t/data/protobuf-read-only/src/google/protobuf/unittest_custom_options.proto';

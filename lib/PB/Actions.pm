@@ -1,7 +1,17 @@
 use PB::Grammar;
 
-class PB::Option {
+class PB::SubMsg {
 
+}
+
+class PB::Option {
+    has Str $.name;
+    has $.constant;
+    has PB::SubMsg $.sub-message;
+    
+    method gist() {
+        "<Option {$.name}={$.constant || 'Any'}>"
+    }
 }
 
 class PB::Field {
@@ -12,7 +22,7 @@ class PB::Field {
     has Array[PB::Option] @.options;
 
     method gist() {
-        "<Field {$.identifier}={$.field-num} {@.options}>"
+        "<Field {$.identifier}={$.field-num} {@.options>>.gist}>"
     }
 }
 
@@ -52,18 +62,12 @@ class PB::Actions {
     }
 
     method field($/) {
-        my $opts;
-        if $<field-opts> {
-            $opts = $<field-opts>.ast;
-        } else {
-            $opts = [];
-        }
         make PB::Field.new(
             label => $<label>.Str, 
             type => $<type>.Str,
             identifier => $<ident>.Str,
             field-num => $<field-num>.Num.Int,
-            options => $opts
+            options => $<field-opts> ?? $<field-opts>.ast !! []
         );
     }
 
@@ -76,10 +80,60 @@ class PB::Actions {
     }
 
     method opt-body($/) {
-        my $o = make PB::Option.new();
-        say 'o ', $o;
-        $o;
+        make PB::Option.new(
+            name => $<opt-name>.Str,
+            constant => $<constant> ?? $<constant>.ast !! Any
+        );
     }
+
+    ## string constants -------------------------------------------------------
+
+    method constant:sym<str>($/) {
+        make $<str-lit>.ast;
+    }
+
+    method str-lit:sym<single-quoted>($/) {
+        make $<str-contents-single>>>.flat>>.ast.join;
+    }
+
+    method str-lit:sym<double-quoted>($/) {
+        make $<str-contents-double>>>.flat>>.ast.join;
+    }
+
+    method str-contents-single($/) {
+        if $<str-escape> {
+            make $<str-escape>.ast;
+        } else {
+            make ~$/;
+        }
+    }
+
+    method str-contents-double($/) {
+        if $<str-escape> {
+            make $<str-escape>.ast;
+        } else {
+            make ~$/;
+        }
+    }
+
+    method str-escape:sym<hex>($/) {
+        make chr(:16($<xdigit>.join));
+    }
+
+    method str-escape:sym<oct>($/) {
+        make chr(:8($<digit>.join));
+    }
+
+    method str-escape:sym<char>($/) {
+        my %h = {
+            'n' => "\n",
+            '\\' => "\\",
+            # TODO: others...
+        };
+        make %h{~$<char>};
+    }
+
+    # integer constants -------------------------------------------------------
 }
 
 my $actions = PB::Actions.new;
@@ -87,8 +141,8 @@ my $src = '
 package omg.nowai;
 
 message yawai {
-    required int32 lolwut = 1 [default="snarf", butt=LOL_NOWAI];
-    optional string snu = 2;
+    required int32 lolwut = 1 [default="snarf \x14b poop \n", butt=LOL_NOWAI, shart=\'fart\'];
+    optional string snu = 2 [default=1];
 }
 ';
 # say 'parse: ', PB::Grammar.parse($src);
