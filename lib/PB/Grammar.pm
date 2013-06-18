@@ -2,7 +2,7 @@
 
 grammar PB::Grammar {
     token TOP           { ^ <.ws> <proto> <.ws> $ <.ws> }
-    token proto         { [<message> | <package> | <import> | <option> | <enum> | <extend> | <service> | ';']* }
+    token proto         { [<message> | <pkg> | <import> | <option> | <enum> | <extend> | <service> | ';']* }
 
     # comments and whitespace
     proto token comment { * }
@@ -15,7 +15,7 @@ grammar PB::Grammar {
     rule public         { 'public' }
 
     # package
-    rule package        { 'package' <dotted-ident> ';' }
+    rule pkg            { 'package' <dotted-ident> ';' }
 
     # option
     rule option         { 'option' <opt-body> ';' }
@@ -36,9 +36,9 @@ grammar PB::Grammar {
     rule message        { 'message' <ident> <message-body> }
     rule message-body   { '{' [<message> | <field> | <extensions> | <option> | <group> | <enum> | <extend> | ';']* '}' }
     rule field          { <label> <type> <ident> '=' <field-num> <field-opts>? ';' }
-    rule field-opts     { '[' (<field-opt> ','?)* ']' } # todo: make this turn into a prettier ast, also disallow trailing comma
-    token field-opt     { [<default-opt> | <opt-body>] }
-    rule default-opt    { 'default' <.ws> '=' <constant> }
+    rule field-opts     { '[' [<opt-body> ','?]* ']' } # todo: make this turn into a prettier ast, also disallow trailing comma
+    # token field-opt     { [<default-opt> | <opt-body>] }
+    # rule default-opt    { 'default' <.ws> '=' <constant> }
     rule extensions     { 'extensions' <extension> (',' <extension>)* ';' }
     rule extension      { <int-lit> ['to' [<int-lit> | 'max']]? }
     rule group          { <label> 'group' <camel-ident> '=' <int-lit> <message-body> }
