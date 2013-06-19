@@ -76,21 +76,24 @@ grammar PB::Grammar {
 
     proto token constant { * }
 
-    token constant:sym<symbol>   { <ident> }
-
     # numbers
-    token sign                   { ['-' | '+']? }
-    token constant:sym<float>    { <sign> \d+ '.'? \d* [<[eE]> ['+'|'-']? \d+]? <!before <[xX]>> } # <!before> here to make this rule not match 0 in a hex
-    token constant:sym<bool>     { 'true' | 'false' }
-    token constant:sym<nan>      { 'nan' }
-    token constant:sym<inf>      { <sign> 'inf' }
+    token sign                  { ['-' | '+']? }
+    token constant:sym<bool>    { 'true' | 'false' }
+    token constant:sym<nan>     { 'nan' }
+    token constant:sym<inf>     { <sign> 'inf' }
 
     # int
     token constant:sym<int> { <int-lit> }
     proto token int-lit     { * }
     token int-lit:sym<dec>  { <sign> <[1..9]>\d* }
-    token int-lit:sym<hex>  { <sign> '0' <[xX]> <.xdigit>+ }
-    token int-lit:sym<oct>  { <sign> '0' <[0..7]>* }
+    token int-lit:sym<hex>  { <sign> '0' <[xX]> <xdigit>+ }
+    token int-lit:sym<oct>  { <sign> '0' $<digit>=<[0..7]>* }
+
+    # float
+    token exponent              { [<[eE]> ['+'|'-']? \d+] }
+    token constant:sym<float>   { <sign> [<float-leading> | <float-no-leading>] }
+    token float-no-leading      { '.' \d+ <exponent>? }
+    token float-leading         { \d+ '.'? \d* <exponent>? }
 
     # string
     token constant:sym<str>             { <str-lit> }
@@ -106,7 +109,11 @@ grammar PB::Grammar {
     token str-escape:sym<hex>           { '\\' <[xX]> <xdigit> ** 1..2 }
     token str-escape:sym<oct>           { '\\' $<digit>=<[0..7]> ** 1..3 }
     token str-escape:sym<char>          { '\\' $<char>=<[abfnrtv\\?'"]> }       # ' <- stupid syntax highlighting
+
+    # symbol constant - match last so true/false/nan/inf whatever can be picked up
+    token constant:sym<symbol>   { <ident> }
 }
 
 my $fn = '/Users/samuelsutch/dev/p6fart/pb/t/data/protobuf-read-only/src/google/protobuf/unittest_custom_options.proto';
 # say PB::Grammar.parse(slurp(open $fn));
+# say PB::Grammar.parse('option w = { x: B, y: C };');

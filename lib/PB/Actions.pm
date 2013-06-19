@@ -133,7 +133,47 @@ class PB::Actions {
         make %h{~$<char>};
     }
 
-    # integer constants -------------------------------------------------------
+    # number constants --------------------------------------------------------
+
+    method constant:sym<int>($/) {
+        make $<int-lit>.ast;
+    }
+
+    method int-lit:sym<dec>($/) {
+        make $/.Str.Num;
+    }
+
+    method int-lit:sym<hex>($/) {
+        make :16($<xdigit>.join);
+    }
+
+    method int-lit:sym<oct>($/) {
+        make :8($<digit>.join);
+    }
+
+    method constant:sym<nan>($/) {
+        make NaN;
+    }
+
+    method constant:sym<inf>($/) {
+        if $<sign> && $<sign>.Str eq '-' {
+            make -Inf;
+        } else {
+            make Inf;
+        }
+    }
+
+    method constant:sym<bool>($/) {
+        if $/.Str eq 'true' {
+            make Bool::True;
+        } else {
+            make Bool::False;
+        }
+    }
+
+    method constant:sym<float>($/) {
+        make $/.Str.Num;
+    }
 }
 
 my $actions = PB::Actions.new;
@@ -141,11 +181,11 @@ my $src = '
 package omg.nowai;
 
 message yawai {
-    required int32 lolwut = 1 [default="snarf \x14b poop \n", butt=LOL_NOWAI, shart=\'fart\'];
+    required int32 lolwut = 1 [default="snarf \x14b stoor \n", butt=LOL_NOWAI, hart=\'art\'];
     optional string snu = 2 [default=1];
 }
 ';
 # say 'parse: ', PB::Grammar.parse($src);
-say 'act: ', PB::Grammar.parse($src, :actions($actions)).ast;
+# say 'act: ', PB::Grammar.parse($src, :actions($actions)).ast;
 
 # ==> use of uninitialized value of type Any in string context  in block  at lib/PB/Actions.pm:23
