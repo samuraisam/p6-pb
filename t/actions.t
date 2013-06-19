@@ -29,3 +29,14 @@ gr_ok 'inf', <constant>, Inf, 'constant positive Inf';
 gr_ok '+inf', <constant>, Inf, 'constant positive Inf with sign';
 gr_ok '-inf', <constant>, -Inf, 'constant negative Inf with sign';
 gr_ok 'nan', <constant>, NaN, 'constant nan';
+
+gr_ok 'option x = 1;', <option>, PB::Option.new(name => 'x', constant => 1), 'option int const';
+gr_ok 'option x = 1.0;', <option>, PB::Option.new(name => 'x', constant => 1.0), 'option float const';
+gr_ok 'option x = 0xf4;', <option>, PB::Option.new(name => 'x', constant => 244), 'option hex const';
+gr_ok 'option x = 070;', <option>, PB::Option.new(name => 'x', constant => 56), 'option opt const';
+gr_ok 'option x = -.2e5;', <option>, PB::Option.new(name => 'x', constant => -.2e5), 'option float exponent';
+gr_ok 'option x = false;', <option>, PB::Option.new(name => 'x', constant => False), 'option false';
+gr_ok 'option x = true;', <option>, PB::Option.new(name => 'x', constant => True), 'option true';
+gr_ok 'option x = inf;', <option>, PB::Option.new(name => 'x', constant => Inf), 'option inf';
+gr_ok 'option x = -inf;', <option>, PB::Option.new(name => 'x', constant => -Inf), 'option -inf';
+gr_ok 'option x = nan;', <option>, PB::Option.new(name => 'x', constant => NaN), 'option NaN';

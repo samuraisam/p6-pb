@@ -14,6 +14,13 @@ class PB::Option {
     }
 }
 
+multi infix:<eq>(PB::Option $a, PB::Option $b) is export {
+    return
+        [&&] ($a.name eq $b.name),
+             ($a.constant // Nil) eq ($b.constant // Nil),
+             ($a.sub-message // Nil) eq ($b.sub-message // Nil);
+}
+
 class PB::Field {
     has Str $.label;
     has Str $.type;
@@ -37,6 +44,7 @@ class PB::Message {
 class PB::Package { 
     has Str $.name;
     has Array[PB::Message] @.messages;
+    has Array[PB::Option] @.options;
 
     method gist() {
         "<Package {$.name} messages=[{join ', ', @.messages>>.gist}]>"
@@ -51,8 +59,13 @@ class PB::Actions {
     method proto($/) {
         make PB::Package.new(
             name => $<pkg>[0]<dotted-ident>.Str,
-            messages => $<message>>>.ast
+            messages => $<message>>>.ast,
+            options => $<option>>>.ast
         );
+    }
+
+    method option($/) {
+        make $<opt-body>.ast;
     }
 
     method message($/) {
