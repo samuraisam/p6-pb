@@ -1,4 +1,3 @@
-# use Grammar::Tracer;
 
 grammar PB::Grammar {
     token TOP           { ^ <.ws> <proto> <.ws> $ <.ws> }
@@ -113,7 +112,3 @@ grammar PB::Grammar {
     # symbol constant - match last so true/false/nan/inf whatever can be picked up
     token constant:sym<symbol>   { <ident> }
 }
-
-my $fn = '/Users/samuelsutch/dev/p6fart/pb/t/data/protobuf-read-only/src/google/protobuf/unittest_custom_options.proto';
-# say PB::Grammar.parse(slurp(open $fn));
-# say PB::Grammar.parse('option w = { x: B, y: C };');

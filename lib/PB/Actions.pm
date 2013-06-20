@@ -1,110 +1,8 @@
 use PB::Grammar;
-
-class PB::SubMsg {
-
-}
-
-class PB::Option {
-    has Str $.name;
-    has $.constant;
-    has PB::SubMsg $.sub-message;
-    
-    method new(Str :$name!, :$constant?, PB::SubMsg :$sub-message?) {
-        if !$name.chars {
-            die "name must not be zero length";
-        }
-        if (!$constant.defined && !$sub-message.defined) || ($constant.defined && $sub-message.defined) {
-            die "either constant OR sub-message must be provided"; 
-        }
-        self.bless(*, name => $name, constant => $constant, sub-message => $sub-message);
-    }
-
-    method gist() {
-        "<Option {$.name}={$.constant.defined ?? $.constant !! 'Any'}>"
-    }
-}
-
-multi infix:<eq>(PB::Option $a, PB::Option $b) is export {
-    # say "$a = $b";
-    return
-        [&&] ($a.name eq $b.name),
-             ($a.constant // Nil) eq ($b.constant // Nil),
-             ($a.sub-message // Nil) eq ($b.sub-message // Nil);
-}
-
-class PB::Field {
-    has Str $.label;
-    has Str $.type;
-    has Str $.name;
-    has Int $.number;
-    has Array[PB::Option] @.options;
-
-    method new(Str :$label!, Str :$type!, Str :$name!, Int :$number!, :@options) {
-        if !$label.chars || !$type.chars || !$name.chars {
-            die "label, type, and name must all be a string with non-zero length";
-        }
-        self.bless(*, name => $name, label => $label, type => $type, number => $number, options => @options);
-    }
-
-    method gist() {
-        "<Field {$.name}={$.number} opts=[{@.options>>.gist}]>"
-    }
-}
-
-multi infix:<eq>(PB::Field $a, PB::Field $b) is export {
-    my @aopts = ($a.options // []);
-    my @bopts = ($b.options // []);
-    # say 'field eq: ', ($a.label eq $b.label),
-    #          ($a.type eq $b.type),
-    #          ($a.name eq $b.name),
-    #          ($a.number eq $b.number),
-    #          # ($a.options // []) eqv ($b.options // []);
-    #          [&&](@aopts Zeq @bopts),
-    #          (@aopts == @bopts).perl;
-    return 
-        [&&] ($a.label eq $b.label),
-             ($a.type eq $b.type),
-             ($a.name eq $b.name),
-             ($a.number eq $b.number),
-             # ($a.options // []) eqv ($b.options // []); # <-- should this work instead of the below? it doesn't call the custom eq
-             [&&](@aopts Zeq @bopts),
-             (@aopts == @bopts);
-}
-
-class PB::Message {
-    has Str $.name;
-    has Array[PB::Field] @.fields;
-
-    method new(Str :$name!, :@fields?) {
-        if !$name.chars {
-            die "name must be a string of non-zero length";
-        }
-        self.bless(*, name => $name, fields => @fields);
-    }
-
-    method gist() {
-        "<Message fields=[{join ', ', @.fields>>.gist}]>";
-    }
-}
-
-multi infix:<eq>(PB::Message $a, PB::Message $b) is export {
-    my @afields = ($a.fields // []);
-    my @bfields = ($b.fields // []);
-    # say 'msg eq: ', ((@afields == @bfields), [&&](@afields Zeq @bfields)).perl;
-    return
-        [&&] ((@afields == @bfields), # compare length
-              [&&](@afields Zeq @bfields)); # compare contents
-}
-
-class PB::Package {
-    has Str $.name;
-    has Array[PB::Message] @.messages;
-    has Array[PB::Option] @.options;
-
-    method gist() {
-        "<Package {$.name} messages=[{join ', ', @.messages>>.gist}]>"
-    }
-}
+use PB::Model::Field;
+use PB::Model::Message;
+use PB::Model::Option;
+use PB::Model::Package;
 
 class PB::Actions {
     method TOP($/) {
@@ -112,7 +10,7 @@ class PB::Actions {
     }
 
     method proto($/) {
-        make PB::Package.new(
+        make PB::Model::Package.new(
             name => $<pkg>[0]<dotted-ident>.Str,
             messages => $<message>>>.ast,
             options => $<option>>>.ast
@@ -124,14 +22,14 @@ class PB::Actions {
     }
 
     method message($/) {
-        make PB::Message.new(
+        make PB::Model::Message.new(
             name => $<ident>.Str,
             fields => $<message-body><field>>>.ast
         );
     }
 
     method field($/) {
-        make PB::Field.new(
+        make PB::Model::Field.new(
             label => $<label>.Str, 
             type => $<type>.Str,
             name => $<ident>.Str,
@@ -149,7 +47,7 @@ class PB::Actions {
     }
 
     method opt-body($/) {
-        make PB::Option.new(
+        make PB::Model::Option.new(
             name => $<opt-name>.Str,
             constant => $<constant> ?? $<constant>.ast !! Any
         );
@@ -244,17 +142,3 @@ class PB::Actions {
         make $/.Str.Num;
     }
 }
-
-my $actions = PB::Actions.new;
-my $src = '
-package omg.nowai;
-
-message yawai {
-    required int32 lolwut = 1 [default="snarf \x14b stoor \n", butt=LOL_NOWAI, hart=\'art\'];
-    optional string snu = 2 [default=1];
-}
-';
-# say 'parse: ', PB::Grammar.parse($src);
-# say 'act: ', PB::Grammar.parse($src, :actions($actions)).ast;
-
-# ==> use of uninitialized value of type Any in string context  in block  at lib/PB/Actions.pm:23
