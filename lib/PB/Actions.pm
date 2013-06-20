@@ -9,12 +9,20 @@ class PB::Option {
     has $.constant;
     has PB::SubMsg $.sub-message;
     
+    method new(Str :$name!, :$constant?, PB::SubMsg :$sub-message?) {
+        if (!$constant.defined && !$sub-message.defined) || ($constant.defined && $sub-message.defined) {
+            die "either constant OR sub-message must be provided"; 
+        }
+        self.bless(*, name => $name, constant => $constant, sub-message => $sub-message);
+    }
+
     method gist() {
-        "<Option {$.name}={$.constant || 'Any'}>"
+        "<Option {$.name}={$.constant.defined ?? $.constant !! 'Any'}>"
     }
 }
 
 multi infix:<eq>(PB::Option $a, PB::Option $b) is export {
+    # say "$a = $b";
     return
         [&&] ($a.name eq $b.name),
              ($a.constant // Nil) eq ($b.constant // Nil),
@@ -24,13 +32,29 @@ multi infix:<eq>(PB::Option $a, PB::Option $b) is export {
 class PB::Field {
     has Str $.label;
     has Str $.type;
-    has Str $.identifier;
-    has Int $.field-num;
+    has Str $.name;
+    has Int $.number;
     has Array[PB::Option] @.options;
 
-    method gist() {
-        "<Field {$.identifier}={$.field-num} {@.options>>.gist}>"
+    method new(Str :$label!, Str :$type!, Str :$name!, Int :$number!, :@options) {
+        self.bless(*, name => $name, label => $label, type => $type, number => $number, options => @options);
     }
+
+    method gist() {
+        "<Field {$.name}={$.number} opts=[{@.options>>.gist}]>"
+    }
+}
+
+multi infix:<eq>(PB::Field $a, PB::Field $b) is export {
+    my @aopts = ($a.options // []);
+    my @bopts = ($b.options // []);
+    return 
+        [&&] ($a.label eq $b.label),
+             ($a.type eq $b.type),
+             ($a.name eq $b.name),
+             ($a.number eq $b.number),
+             [&&](@aopts Zeq @bopts),
+             (@aopts == @bopts);
 }
 
 class PB::Message {
@@ -78,8 +102,8 @@ class PB::Actions {
         make PB::Field.new(
             label => $<label>.Str, 
             type => $<type>.Str,
-            identifier => $<ident>.Str,
-            field-num => $<field-num>.Num.Int,
+            name => $<ident>.Str,
+            number => $<field-num>.Num.Int,
             options => $<field-opts> ?? $<field-opts>.ast !! []
         );
     }

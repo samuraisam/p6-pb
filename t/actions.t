@@ -10,12 +10,16 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     ok $result eq $expected, $desc;
 }
 
+# string constants ------------------------------------------------------------
+
 gr_ok '"hello"', <str-lit>, "hello", "str-lit basic";
 gr_ok '"hello \xc3"', <str-lit>, "hello \xc3", "str-lit unicode escape";
 gr_ok "'\\176'", <str-lit>, "~", 'str-lit oct escape, single-quote';
 gr_ok "'\\n'", <str-lit>, "\n", 'str-lit newline escape';
 gr_ok '"\\\\"', <str-lit>, '\\', 'str-lit double backslash escape';
 # TODO: test the other backslash char escapes
+
+# number constants ------------------------------------------------------------
 
 gr_ok "1", <constant>, 1, 'int-lit basic decimal';
 gr_ok "0xf4", <constant>, 244, 'int-lit basic hex';
@@ -30,6 +34,20 @@ gr_ok '+inf', <constant>, Inf, 'constant positive Inf with sign';
 gr_ok '-inf', <constant>, -Inf, 'constant negative Inf with sign';
 gr_ok 'nan', <constant>, NaN, 'constant nan';
 
+# PB::Option constructor and such ---------------------------------------------
+
+nok (try PB::Option.new(name => 'x')), 'construct option w/o constant or sub message';
+ok PB::Option.new(name => 'y', constant => 1.0e4), 'construct option w/ constant';
+ok PB::Option.new(name => 'y', constant => 0), 'construct option w/ falsey constant';
+nok (try PB::Option.new(name => 'x', sub-message => PB::SubMesg.new(), constant=> 'x')), 'dont construct option with both constant and sub message';
+# todo: construct / equality tests for options with sub messages
+ok PB::Option.new(name => 'x', constant => 'a') eq PB::Option.new(name => 'x', constant => 'a'), 'option equal';
+nok PB::Option.new(name => 'x', constant => 'a') eq PB::Option.new(name => 'y', constant => 'a'), 'option not equal';
+ok PB::Option.new(name => 'x', constant => 'y') eq PB::Option.new(name => 'x', constant => 'y'), 'option w/ constant equal';
+nok PB::Option.new(name => 'x', constant => 0) eq PB::Option.new(name => 'x', constant => 1), 'option w/ constant equal';
+
+# Option ----------------------------------------------------------------------
+
 gr_ok 'option x = 1;', <option>, PB::Option.new(name => 'x', constant => 1), 'option int const';
 gr_ok 'option x = 1.0;', <option>, PB::Option.new(name => 'x', constant => 1.0), 'option float const';
 gr_ok 'option x = 0xf4;', <option>, PB::Option.new(name => 'x', constant => 244), 'option hex const';
@@ -40,3 +58,37 @@ gr_ok 'option x = true;', <option>, PB::Option.new(name => 'x', constant => True
 gr_ok 'option x = inf;', <option>, PB::Option.new(name => 'x', constant => Inf), 'option inf';
 gr_ok 'option x = -inf;', <option>, PB::Option.new(name => 'x', constant => -Inf), 'option -inf';
 gr_ok 'option x = nan;', <option>, PB::Option.new(name => 'x', constant => NaN), 'option NaN';
+
+# PB::Field constructor and such ----------------------------------------------
+
+nok (try PB::Field.new()), 'empty field constructor';
+nok (try PB::Field.new(name=>'name')), 'field constructor w/o label, type or number';
+nok (try PB::Field.new(name=>'name', label=>'required')), 'field constructor w/o type or number';
+nok (try PB::Field.new(name=>'name', label=>'required', type=>'int32')), 'field constructor w/o number';
+ok PB::Field.new(name=>'name', label=>'required', type=>'int32', number=>1), 'valid field constructor';
+ok PB::Field.new(name=>'name', label=>'required', type=>'int32', number=>1, 
+    options=>[PB::Option.new(name=>'x', constant=>'x')]), 'field constructor with options';
+
+# equality
+my $field = PB::Field.new(name=>'name', label=>'required', type=>'int32', number=>1);
+my $field2 = PB::Field.new(name=>'name', label=>'required', type=>'int32', number=>1);
+my $fopt = PB::Option.new(name=>'default', constant=>0);
+my $fopt2 = PB::Option.new(name=>'default', constant=>0);
+ok [&&]([$fopt] Zeq [$fopt2]), 'option equality sanity test';
+
+ok $field eq $field, 'field equality to self';
+ok $field eq $field2, 'basic field equality';
+nok $field eq $field2.clone(number=>2), 'field non-equality with different numbers';
+nok $field eq $field2.clone(name=>'othername'), 'field non-equality with different names';
+nok $field eq $field2.clone(label=>'optional'), 'field non-equality with different labels';
+nok $field eq $field2.clone(:options($fopt)), 'field non-equality one with and one without options';
+# say 'butts: ', ($field.clone(options=>[$fopt]).options , $field2.clone(options=>[$fopt2]).options);
+ok $field.clone(:options($fopt)) eq $field2.clone(:options($fopt2)), 'field equality with same options';
+nok $field.clone(:options($fopt.clone(constant=>1))) eq $field2.clone(:options($fopt2)), 'field non-equality with different options';
+
+# message field ---------------------------------------------------------------
+
+sub msgfield(*%args) { PB::Message.new(fields=>[PB::Field.new(|%args)]) }
+
+# gr_ok 'message n{required int32 x=1;}', <message>, 
+#     msgfield(label=>'required', type=>'int32', name=>'x', number=>1), 'basic message field';
