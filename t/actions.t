@@ -5,8 +5,11 @@ use PB::Actions;
 sub gr_ok($text, $rule, $expected, $desc?) { 
     my $actions = PB::Actions.new;
     my $result = PB::Grammar.parse($text, rule => $rule, actions => $actions).ast;
-    # say ' expected: ', $expected.perl;
-    # say '   result: ', $result.perl;
+    # say '';
+    # say ' expected: ', $expected.gist;
+    # say '';
+    # say '   result: ', $result.gist;
+    # say '';
     ok $result eq $expected, $desc;
 }
 
@@ -45,6 +48,7 @@ ok PB::Option.new(name => 'x', constant => 'a') eq PB::Option.new(name => 'x', c
 nok PB::Option.new(name => 'x', constant => 'a') eq PB::Option.new(name => 'y', constant => 'a'), 'option not equal';
 ok PB::Option.new(name => 'x', constant => 'y') eq PB::Option.new(name => 'x', constant => 'y'), 'option w/ constant equal';
 nok PB::Option.new(name => 'x', constant => 0) eq PB::Option.new(name => 'x', constant => 1), 'option w/ constant equal';
+nok (try PB::Option.new(:name(''), :constant(''))), 'option with empty string name';
 
 # Option ----------------------------------------------------------------------
 
@@ -68,6 +72,7 @@ nok (try PB::Field.new(name=>'name', label=>'required', type=>'int32')), 'field 
 ok PB::Field.new(name=>'name', label=>'required', type=>'int32', number=>1), 'valid field constructor';
 ok PB::Field.new(name=>'name', label=>'required', type=>'int32', number=>1, 
     options=>[PB::Option.new(name=>'x', constant=>'x')]), 'field constructor with options';
+nok (try PB::Field.new(:name(''), :label(''), :type(''), :number(1))), 'field constructor with empty values';
 
 # equality
 my $field = PB::Field.new(name=>'name', label=>'required', type=>'int32', number=>1);
@@ -82,13 +87,38 @@ nok $field eq $field2.clone(number=>2), 'field non-equality with different numbe
 nok $field eq $field2.clone(name=>'othername'), 'field non-equality with different names';
 nok $field eq $field2.clone(label=>'optional'), 'field non-equality with different labels';
 nok $field eq $field2.clone(:options($fopt)), 'field non-equality one with and one without options';
-# say 'butts: ', ($field.clone(options=>[$fopt]).options , $field2.clone(options=>[$fopt2]).options);
 ok $field.clone(:options($fopt)) eq $field2.clone(:options($fopt2)), 'field equality with same options';
 nok $field.clone(:options($fopt.clone(constant=>1))) eq $field2.clone(:options($fopt2)), 'field non-equality with different options';
 
+# PB::Message constructor and equality ----------------------------------------
+
+my $mfield = PB::Field.new(name=>'fieldname', label=>'required', type=>'int32', number=>1);
+ok PB::Message.new(:name<a>, :fields()), 'message w/ no fields';
+ok PB::Message.new(:name<a>, :fields([$mfield])), 'message w/ a field';
+nok (try PB::Message.new(:name(''))), 'message requires a name';
+
+my $msg = PB::Message.new(:name<a>, :fields[$mfield]);
+my $msg2 = PB::Message.new(:name<a>, :fields[$mfield]);
+my $msg3 = PB::Message.new(:name<a>, :fields[$mfield.clone(:name<otherfieldname>)]);
+
+ok $msg eq $msg2, 'message equality';
+nok $msg eq $msg3, 'message inequality';
+ok PB::Message.new(:name<a>) eq PB::Message.new(:name<a>), 'empty message equality';
+
 # message field ---------------------------------------------------------------
 
-sub msgfield(*%args) { PB::Message.new(fields=>[PB::Field.new(|%args)]) }
+sub msgfield($name, *%args) { PB::Message.new(name=>$name, fields=>[PB::Field.new(|%args)]) }
 
-# gr_ok 'message n{required int32 x=1;}', <message>, 
-#     msgfield(label=>'required', type=>'int32', name=>'x', number=>1), 'basic message field';
+gr_ok 'message n{required int32 x=1;}', <message>, 
+    msgfield('n', label=>'required', type=>'int32', name=>'x', number=>1), 'basic message field';
+gr_ok 'message n{
+        optional string mylabel = 1 [default="farting"];
+        optional float mylabel2 = 2;
+        }', 
+    <message>,
+    PB::Message.new(name=>'n', fields=>[
+        PB::Field.new(label=>'optional', type=>'string', name=>'mylabel', number=>1, 
+            options=>[PB::Option.new(name=>'default', constant=>"farting")]),
+        PB::Field.new(label=>'optional', type=>'float', name=>'mylabel2', number=>2)
+    ]),
+    'message w/ multiple fields, one with an option';

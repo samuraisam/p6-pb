@@ -10,6 +10,9 @@ class PB::Option {
     has PB::SubMsg $.sub-message;
     
     method new(Str :$name!, :$constant?, PB::SubMsg :$sub-message?) {
+        if !$name.chars {
+            die "name must not be zero length";
+        }
         if (!$constant.defined && !$sub-message.defined) || ($constant.defined && $sub-message.defined) {
             die "either constant OR sub-message must be provided"; 
         }
@@ -37,6 +40,9 @@ class PB::Field {
     has Array[PB::Option] @.options;
 
     method new(Str :$label!, Str :$type!, Str :$name!, Int :$number!, :@options) {
+        if !$label.chars || !$type.chars || !$name.chars {
+            die "label, type, and name must all be a string with non-zero length";
+        }
         self.bless(*, name => $name, label => $label, type => $type, number => $number, options => @options);
     }
 
@@ -48,24 +54,49 @@ class PB::Field {
 multi infix:<eq>(PB::Field $a, PB::Field $b) is export {
     my @aopts = ($a.options // []);
     my @bopts = ($b.options // []);
+    # say 'field eq: ', ($a.label eq $b.label),
+    #          ($a.type eq $b.type),
+    #          ($a.name eq $b.name),
+    #          ($a.number eq $b.number),
+    #          # ($a.options // []) eqv ($b.options // []);
+    #          [&&](@aopts Zeq @bopts),
+    #          (@aopts == @bopts).perl;
     return 
         [&&] ($a.label eq $b.label),
              ($a.type eq $b.type),
              ($a.name eq $b.name),
              ($a.number eq $b.number),
+             # ($a.options // []) eqv ($b.options // []); # <-- should this work instead of the below? it doesn't call the custom eq
              [&&](@aopts Zeq @bopts),
              (@aopts == @bopts);
 }
 
 class PB::Message {
+    has Str $.name;
     has Array[PB::Field] @.fields;
+
+    method new(Str :$name!, :@fields?) {
+        if !$name.chars {
+            die "name must be a string of non-zero length";
+        }
+        self.bless(*, name => $name, fields => @fields);
+    }
 
     method gist() {
         "<Message fields=[{join ', ', @.fields>>.gist}]>";
     }
 }
 
-class PB::Package { 
+multi infix:<eq>(PB::Message $a, PB::Message $b) is export {
+    my @afields = ($a.fields // []);
+    my @bfields = ($b.fields // []);
+    # say 'msg eq: ', ((@afields == @bfields), [&&](@afields Zeq @bfields)).perl;
+    return
+        [&&] ((@afields == @bfields), # compare length
+              [&&](@afields Zeq @bfields)); # compare contents
+}
+
+class PB::Package {
     has Str $.name;
     has Array[PB::Message] @.messages;
     has Array[PB::Option] @.options;
@@ -94,6 +125,7 @@ class PB::Actions {
 
     method message($/) {
         make PB::Message.new(
+            name => $<ident>.Str,
             fields => $<message-body><field>>>.ast
         );
     }
