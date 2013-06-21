@@ -4,6 +4,7 @@ use PB::Actions;
 use PB::Model::Field;
 use PB::Model::Message;
 use PB::Model::Option;
+use PB::Model::Enum;
 
 sub gr_ok($text, $rule, $expected, $desc?) { 
     my $actions = PB::Actions.new;
@@ -66,7 +67,7 @@ gr_ok 'option x = inf;', <option>, PB::Model::Option.new(name => 'x', constant =
 gr_ok 'option x = -inf;', <option>, PB::Model::Option.new(name => 'x', constant => -Inf), 'option -inf';
 gr_ok 'option x = nan;', <option>, PB::Model::Option.new(name => 'x', constant => NaN), 'option NaN';
 
-# PB::Model::Field constructor and such ----------------------------------------------
+# PB::Model::Field constructor and such ---------------------------------------
 
 nok (try PB::Model::Field.new()), 'empty field constructor';
 nok (try PB::Model::Field.new(name=>'name')), 'field constructor w/o label, type or number';
@@ -93,7 +94,49 @@ nok $field eq $field2.clone(:options($fopt)), 'field non-equality one with and o
 ok $field.clone(:options($fopt)) eq $field2.clone(:options($fopt2)), 'field equality with same options';
 nok $field.clone(:options($fopt.clone(constant=>1))) eq $field2.clone(:options($fopt2)), 'field non-equality with different options';
 
-# PB::Model::Message constructor and equality ----------------------------------------
+# PB::Model::EnumField --------------------------------------------------------
+
+nok (try PB::Model::EnumField.new()), 'enum field constructor must take name and value';
+nok (try PB::Model::EnumField.new(name=>'hello')), 'enum field constructor must take value';
+nok (try PB::Model::EnumField.new(value=>1)), 'enum field constructor must take name';
+nok (try PB::Model::EnumField.new(name=>'x', value=>'1')), 'enum field constructor must take an int value [str provided]';
+nok (try PB::Model::EnumField.new(name=>'x', value=>1.0)), 'enum field constructor must take an int value [float provided]';
+ok PB::Model::EnumField.new(name=>'x', value=>1), 'enum field regular constructor works';
+
+# equality
+my $efield = PB::Model::EnumField.new(name=>'hello', value=>1);
+my $efield2 = $efield.clone();
+
+ok $efield eq $efield2, 'enum field equality';
+nok $efield eq $efield.clone(value=>2), 'enum field name inequality';
+nok $efield eq $efield.clone(name=>'not hello'), 'enum field name inequality';
+
+# PB::Model::Enum -------------------------------------------------------------
+
+nok (try PB::Model::Enum.new()), 'enum w/o name';
+ok PB::Model::Enum.new(name=>'hello'), 'enum with only name';
+ok PB::Model::Enum.new(name=>'hello', options=>[$fopt]), 'enum with an option';
+ok PB::Model::Enum.new(name=>'hello', fields=>[$efield]), 'enum with a field';
+ok PB::Model::Enum.new(name=>'hello', options=>[$fopt], fields=>[$efield]), 'enum with a field an an option';
+
+my $eopt = PB::Model::Option.new(name=>'default', constant=>0);
+my $enum = PB::Model::Enum.new(name=>'hello', options=>[$eopt], fields=>[$efield]);
+my $enum2 = $enum.clone();
+
+ok $enum eq $enum2, 'enum equality';
+nok $enum eq $enum2.clone(name=>'shit'), 'enum name inequality';
+
+my $efield3 = $efield.clone(name=>'not hello');
+nok $efield eq $efield3, 'field clone sanity test';
+my $enum3 = $enum2.clone(:fields($efield3));
+nok $enum2 eq $enum3, 'enum clone sanity test';
+
+nok $enum eq ($enum2.clone(:fields($efield.clone(name=>'not hello')))), 'enum fields inequality';
+nok $enum eq $enum3, 'enum fields inequality';
+nok $enum eq $enum2.clone(:options($eopt.clone(constant=>1))), 'enum opts inequality';
+
+
+# PB::Model::Message constructor and equality ---------------------------------
 
 my $mfield = PB::Model::Field.new(name=>'fieldname', label=>'required', type=>'int32', number=>1);
 ok PB::Model::Message.new(:name<a>, :fields()), 'message w/ no fields';
