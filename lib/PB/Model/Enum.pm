@@ -3,15 +3,20 @@ use PB::Model::Option;
 class PB::Model::EnumField {
     has Str $.name;
     has Int $.value;
+    has Array[PB::Model::Option] @.options;
 
-    method new(Str :$name!, Int :$value!) {
-        self.bless(*, name => $name, value => $value);
+    method new(Str :$name!, Int :$value!, :@options?) {
+        self.bless(*, name => $name, value => $value, options => @options);
     }
 }
 
 multi infix:<eq>(PB::Model::EnumField $a, PB::Model::EnumField $b) is export {
-    # say "{$a.name}={$b.name} {$a.value}={$b.value}";
-    ($a.name eq $b.name) && ($a.value == $b.value);
+    # say "{$a.name eq $b.name} {$a.value == $b.value} {array-attrs-eq(<options>, $a, $b)}";
+    # ($a.name eq $b.name) && ($a.value == $b.value);
+    [&&]
+        array-attrs-eq(<options>, $a, $b),
+        ($a.name eq $b.name),
+        ($a.value == $b.value);
 }
 
 class PB::Model::Enum {
@@ -28,6 +33,8 @@ class PB::Model::Enum {
 sub array-attrs-eq(Str $field!, $a!, $b!) {
     my @aval = $a."$field"();
     my @bval = $b."$field"();
+    # say 'a val ', @aval.perl;
+    # say 'b val ', @bval.perl;
     (@aval == @bval) && [&&](@aval Zeq @bval);
 }
 

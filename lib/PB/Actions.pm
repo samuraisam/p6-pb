@@ -3,6 +3,8 @@ use PB::Model::Field;
 use PB::Model::Message;
 use PB::Model::Option;
 use PB::Model::Package;
+use PB::Model::Enum;
+
 
 class PB::Actions {
     method TOP($/) {
@@ -19,6 +21,22 @@ class PB::Actions {
 
     method option($/) {
         make $<opt-body>.ast;
+    }
+
+    method enum($/) {
+        make PB::Model::Enum.new(
+            name => $<ident>.Str,
+            options => $<option>>>.ast,
+            fields => $<enum-field>>>.ast
+        );
+    }
+
+    method enum-field($/) {
+        make PB::Model::EnumField.new(
+            name => $<ident>.Str,
+            value => $<int-lit>.Num.Int,
+            options => $<fields-opts> ?? $<field-opts>.ast !! []
+        );
     }
 
     method message($/) {
@@ -47,10 +65,15 @@ class PB::Actions {
     }
 
     method opt-body($/) {
+        say "constant: ", $<constant>.ast;
         make PB::Model::Option.new(
             name => $<opt-name>.Str,
             constant => $<constant> ?? $<constant>.ast !! Any
         );
+    }
+
+    method constant:sym<symbol>($/) {
+        make $<ident>.Str;
     }
 
     ## string constants -------------------------------------------------------
