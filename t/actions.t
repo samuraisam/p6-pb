@@ -150,7 +150,7 @@ gr_ok 'enum Omg { INTLOL = 1; STRLOL = 2 [default=INTLOL]; }', <enum>,
     PB::Model::Enum.new(name=>'Omg', fields=>[
         PB::Model::EnumField.new(name=>'INTLOL', value=>1),
         PB::Model::EnumField.new(name=>'STRLOL', value=>2, options=>[
-            PB::Model::Option.new(name=>'default', constant=>'OMG')])]),
+            PB::Model::Option.new(name=>'default', constant=>'INTLOL')])]),
     'enum with two fields, one with an option';
 
 
@@ -167,7 +167,18 @@ my $msg3 = PB::Model::Message.new(:name<a>, :fields[$mfield.clone(:name<otherfie
 
 ok $msg eq $msg2, 'message equality';
 nok $msg eq $msg3, 'message inequality';
+nok $msg eq $msg.clone(:name<b>), 'message name inequality';
 ok PB::Model::Message.new(:name<a>) eq PB::Model::Message.new(:name<a>), 'empty message equality';
+
+my $menum = PB::Model::Enum.new(name=>'KIND', fields=>[PB::Model::EnumField.new(name=>'STR', value=>1)]);
+my $menum2 = PB::Model::Enum.new(name=>'KIND', fields=>[PB::Model::EnumField.new(name=>'INT', value=>1)]);
+nok $menum eq $menum2, 'message enum inequality sanity check';
+
+$msg = PB::Model::Message.new(:name<a>, :enums[$menum]);
+$msg2 = $msg.clone(:enums[$menum2]);
+
+nok $msg eq $msg2, 'message enum ineqauality';
+ok $msg eq $msg.clone(:enums($menum)), 'message enum equality';
 
 # message field ---------------------------------------------------------------
 

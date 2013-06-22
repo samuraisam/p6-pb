@@ -35,7 +35,7 @@ class PB::Actions {
         make PB::Model::EnumField.new(
             name => $<ident>.Str,
             value => $<int-lit>.Num.Int,
-            options => $<fields-opts> ?? $<field-opts>.ast !! []
+            options => $<field-opts> ?? $<field-opts>.ast !! []
         );
     }
 
@@ -65,7 +65,6 @@ class PB::Actions {
     }
 
     method opt-body($/) {
-        say "constant: ", $<constant>.ast;
         make PB::Model::Option.new(
             name => $<opt-name>.Str,
             constant => $<constant> ?? $<constant>.ast !! Any
