@@ -39,7 +39,7 @@ grammar PB::Grammar {
     # token field-opt     { [<default-opt> | <opt-body>] }
     # rule default-opt    { 'default' <.ws> '=' <constant> }
     rule extensions     { 'extensions' <extension> (',' <extension>)* ';' }
-    rule extension      { <int-lit> ['to' [<int-lit> | 'max']]? }
+    rule extension      { $<start>=<int-lit> ['to' $<end>=[<int-lit> | 'max']]? }
     rule group          { <label> 'group' <camel-ident> '=' <int-lit> <message-body> }
 
     # commonly used tokens

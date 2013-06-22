@@ -4,6 +4,7 @@ use PB::Model::Message;
 use PB::Model::Option;
 use PB::Model::Package;
 use PB::Model::Enum;
+use PB::Model::Extension;
 
 
 class PB::Actions {
@@ -44,7 +45,8 @@ class PB::Actions {
             name => $<ident>.Str,
             fields => $<message-body><field>>>.ast,
             enums => $<message-body><enum>>>.ast,
-            messages => $<message-body><message>>>.ast
+            messages => $<message-body><message>>>.ast,
+            extensions => $<message-body><extensions>>>.ast
         );
     }
 
@@ -73,11 +75,31 @@ class PB::Actions {
         );
     }
 
+    method extensions($/) {
+        make $<extension>.ast;
+    }
+
+    method extension($/) {
+        my $end;
+        if $<end> && $<end>.Str eq 'max' {
+            $end = PB::Model::ExtensionField::MAX;
+        } elsif $<end> {
+            $end = $<end>.Str.Int;
+        }
+        my %args = {'start' => $<start>.Str.Int};
+        if $end {
+            %args{'end'} = $end;
+        }
+        make PB::Model::ExtensionField.new(|%args);
+    }
+
+    # other constants ---------------------------------------------------------
+
     method constant:sym<symbol>($/) {
         make $<ident>.Str;
     }
 
-    ## string constants -------------------------------------------------------
+    # string constants --------------------------------------------------------
 
     method constant:sym<str>($/) {
         make $<str-lit>.ast;

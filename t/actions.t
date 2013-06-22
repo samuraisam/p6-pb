@@ -5,6 +5,8 @@ use PB::Model::Field;
 use PB::Model::Message;
 use PB::Model::Option;
 use PB::Model::Enum;
+use PB::Model::Extension;
+
 
 sub gr_ok($text, $rule, $expected, $desc?) { 
     my $actions = PB::Actions.new;
@@ -153,6 +155,27 @@ gr_ok 'enum Omg { INTLOL = 1; STRLOL = 2 [default=INTLOL]; }', <enum>,
             PB::Model::Option.new(name=>'default', constant=>'INTLOL')])]),
     'enum with two fields, one with an option';
 
+# PB::Model::ExtensionField
+{
+    # construction
+    ok PB::Model::ExtensionField.new(start=>999, end=>9999), 'extension field regular construction';
+    nok (try PB::Model::ExtensionField.new(end=>0)), 'extension field missing start';
+    nok (try PB::Model::ExtensionField.new()), 'extension field missing both';
+    # equality
+    my $extf = PB::Model::ExtensionField.new(start=>0, end=>1);
+    my $extf2 = $extf.clone();
+    ok $extf eq $extf2, 'extension field equality';
+    nok $extf eq $extf2.clone(end=>2), 'extension field end inequality';
+    nok $extf eq $extf2.clone(start=>1), 'extension field start inequality';
+    ok PB::Model::ExtensionField.new(start=>1) eq PB::Model::ExtensionField.new(start=>1), 'extension field equality without an end';
+    nok PB::Model::ExtensionField.new(start=>2) eq PB::Model::ExtensionField.new(start=>1), 'extension field inequality without an end';
+
+    # parsing
+    gr_ok '1 to 2', <extension>, PB::Model::ExtensionField.new(start=>1, end=>2), 'extension field regular parse';
+    gr_ok '1 to max', <extension>, PB::Model::ExtensionField.new(start=>1, end=>PB::Model::ExtensionField::MAX), 'extension field to max';
+    gr_ok '99999 to 999999', <extension>, PB::Model::ExtensionField.new(start=>99999, end=>999999), 'extension field large numbers';
+    gr_ok '1', <extension>, PB::Model::ExtensionField.new(start=>1), 'extension field w/o end';
+}
 
 # PB::Model::Message constructor and equality ---------------------------------
 
@@ -193,6 +216,15 @@ $msg2 = PB::Model::Message.new(name=>'X', messages=>[$mmessage2]);
 nok $mmessage eq $mmessage2, 'message containing message inequality';
 ok $mmessage eq $mmessage2.clone(:fields($mmessage.fields[0].clone)), 'message containing message equality';
 
+# message field w/ extensions
+{
+    ok PB::Model::Message.new(name=>'hello', extensions=>[PB::Model::ExtensionField.new(start=>1)]), 'message creation w/ extension';
+    my $msg = PB::Model::Message.new(:name<a>, :extensions([PB::Model::ExtensionField.new(start=>1)]));
+    my $msg2 = $msg.clone(:extensions($msg.extensions[0].clone(start=>2)));
+    nok $msg eq $msg2, 'message w/ extension ineqauality';
+    ok $msg eq $msg2.clone(:extensions($msg.extensions[0])), 'message w/ extensions equality';
+}
+
 # message field ---------------------------------------------------------------
 
 sub msgfield($name, *%args) { PB::Model::Message.new(name=>$name, fields=>[PB::Model::Field.new(|%args)]) }
@@ -221,3 +253,18 @@ gr_ok 'message M{message X{enum Y{ Z = 1; }}}', <message>,
         PB::Model::Message.new(name=>'X', enums=>[
             PB::Model::Enum.new(name=>'Y', fields=>[PB::Model::EnumField.new(name=>'Z', value=>1)])])]),
     'message w/ message w/ enum w/ field';
+
+ok PB::Model::Message.new(name=>'M', extensions=>[
+        PB::Model::ExtensionField.new(start=>1, end=>100)]) eq PB::Model::Message.new(name=>'M', extensions=>[
+        PB::Model::ExtensionField.new(start=>1, end=>100)]), 'message w/ extension cmp sanity';
+
+gr_ok 'message M{extensions 1 to 100;}', <message>,
+    PB::Model::Message.new(name=>'M', extensions=>[
+        PB::Model::ExtensionField.new(start=>1, end=>100)]),
+    'message w/ extensions';
+
+# gr_ok 'message M{extensions 1 to 100; extensions 101 to max; }', <message>,
+#     PB::Model::Message.new(name=>'M', extensions=>[
+#         PB::Model::ExtensionField.new(start=>1, end=>100),
+#         PB::Model::ExtensionField.new(start=>101, end=>PB::Model::ExtensionField::MAX)]),
+#     'message w/ 2 extensions (one of which is MAX)';
