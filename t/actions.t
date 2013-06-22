@@ -263,8 +263,8 @@ gr_ok 'message M{extensions 1 to 100;}', <message>,
         PB::Model::ExtensionField.new(start=>1, end=>100)]),
     'message w/ extensions';
 
-# gr_ok 'message M{extensions 1 to 100; extensions 101 to max; }', <message>,
-#     PB::Model::Message.new(name=>'M', extensions=>[
-#         PB::Model::ExtensionField.new(start=>1, end=>100),
-#         PB::Model::ExtensionField.new(start=>101, end=>PB::Model::ExtensionField::MAX)]),
-#     'message w/ 2 extensions (one of which is MAX)';
+gr_ok 'message M{extensions 1 to 100; extensions 101 to max; }', <message>,
+    PB::Model::Message.new(name=>'M', extensions=>[
+        PB::Model::ExtensionField.new(start=>1, end=>100),
+        PB::Model::ExtensionField.new(start=>101, end=>PB::Model::ExtensionField::MAX)]),
+    'message w/ 2 extensions (one of which is MAX)';
