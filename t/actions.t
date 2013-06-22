@@ -11,8 +11,8 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     my $result = PB::Grammar.parse($text, rule => $rule, actions => $actions).ast;
     my $isok = $result eq $expected;
     unless $isok {
-        say ' expected: ', $expected.gist;
-        say '   result: ', $result.gist;
+        say ' expected: ', $expected.perl;
+        say '   result: ', $result.perl;
     }
     ok $isok, $desc;
 }
@@ -180,12 +180,26 @@ $msg2 = $msg.clone(:enums[$menum2]);
 nok $msg eq $msg2, 'message enum ineqauality';
 ok $msg eq $msg.clone(:enums($menum)), 'message enum equality';
 
+my $mmessage = PB::Model::Message.new(name=>'hello', fields=>[
+    PB::Model::Field.new(label=>'required', type=>'int32', name=>'helloval', number=>1)]);
+my $mmessage2 = $mmessage.clone(:fields($mmessage.fields[0].clone(:label<optional>)));
+
+nok $mmessage eq $mmessage2, 'message containing message inequality - sanity test';
+ok $mmessage eq $mmessage2.clone(:fields($mmessage.fields[0].clone)), 'message containing message equality - sanity test';
+
+$msg = PB::Model::Message.new(name=>'X', messages=>[$mmessage]);
+$msg2 = PB::Model::Message.new(name=>'X', messages=>[$mmessage2]);
+
+nok $mmessage eq $mmessage2, 'message containing message inequality';
+ok $mmessage eq $mmessage2.clone(:fields($mmessage.fields[0].clone)), 'message containing message equality';
+
 # message field ---------------------------------------------------------------
 
 sub msgfield($name, *%args) { PB::Model::Message.new(name=>$name, fields=>[PB::Model::Field.new(|%args)]) }
 
 gr_ok 'message n{required int32 x=1;}', <message>, 
     msgfield('n', label=>'required', type=>'int32', name=>'x', number=>1), 'basic message field';
+
 gr_ok 'message n{
         optional string mylabel = 1 [default="farting"];
         optional float mylabel2 = 2;
@@ -197,3 +211,13 @@ gr_ok 'message n{
         PB::Model::Field.new(label=>'optional', type=>'float', name=>'mylabel2', number=>2)
     ]),
     'message w/ multiple fields, one with an option';
+
+gr_ok 'message N{enum X{}}', <message>,
+    PB::Model::Message.new(name=>'N', enums=>[PB::Model::Enum.new(name=>'X')]),
+    'message w/ enum';
+
+gr_ok 'message M{message X{enum Y{ Z = 1; }}}', <message>,
+    PB::Model::Message.new(name=>'M', messages=>[
+        PB::Model::Message.new(name=>'X', enums=>[
+            PB::Model::Enum.new(name=>'Y', fields=>[PB::Model::EnumField.new(name=>'Z', value=>1)])])]),
+    'message w/ message w/ enum w/ field';

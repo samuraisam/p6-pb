@@ -42,7 +42,9 @@ class PB::Actions {
     method message($/) {
         make PB::Model::Message.new(
             name => $<ident>.Str,
-            fields => $<message-body><field>>>.ast
+            fields => $<message-body><field>>>.ast,
+            enums => $<message-body><enum>>>.ast,
+            messages => $<message-body><message>>>.ast
         );
     }
 
