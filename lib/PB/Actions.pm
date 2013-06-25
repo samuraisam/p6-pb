@@ -13,10 +13,16 @@ class PB::Actions {
     }
 
     method proto($/) {
+        my $pkg = '';
+        if $<pkg>[0] {
+            $pkg = $<pkg>[0]<dotted-ident>.Str
+        }
+        say 'pkg ', $pkg;
         make PB::Model::Package.new(
-            name => $<pkg>[0]<dotted-ident>.Str,
+            name => $pkg,
             messages => $<message>>>.ast,
-            options => $<option>>>.ast
+            options => $<option>>>.ast,
+            enums => $<enum>>>.ast
         );
     }
 
