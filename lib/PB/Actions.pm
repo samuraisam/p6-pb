@@ -17,7 +17,6 @@ class PB::Actions {
         if $<pkg>[0] {
             $pkg = $<pkg>[0]<dotted-ident>.Str
         }
-        say 'pkg ', $pkg;
         make PB::Model::Package.new(
             name => $pkg,
             messages => $<message>>>.ast,
