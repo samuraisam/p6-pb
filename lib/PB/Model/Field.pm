@@ -5,7 +5,7 @@ class PB::Model::Field {
     has Str $.type;
     has Str $.name;
     has Int $.number;
-    has Array[PB::Model::Option] @.options;
+    has PB::Model::Option @.options;
 
     method new(Str :$label!, Str :$type!, Str :$name!, Int :$number!, :@options) {
         if !$label.chars || !$type.chars || !$name.chars {

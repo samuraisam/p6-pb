@@ -9,7 +9,7 @@ sub array-attrs-eq(Str $field!, $a!, $b!) {
 
 class PB::Model::Extension {
     has Str $.name; # original message name
-    has Array[PB::Model::Field] @.fields;
+    has PB::Model::Field @.fields;
 
     method new(Str :$name!, :@fields?) {
         die "name must be a string of non-zero length" unless $name.chars;

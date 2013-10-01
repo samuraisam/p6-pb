@@ -3,7 +3,7 @@ use PB::Model::Option;
 class PB::Model::EnumField {
     has Str $.name;
     has Int $.value;
-    has Array[PB::Model::Option] @.options;
+    has PB::Model::Option @.options;
 
     method new(Str :$name!, Int :$value!, :@options?) {
         self.bless(name => $name, value => $value, options => @options);
@@ -21,8 +21,8 @@ multi infix:<eq>(PB::Model::EnumField $a, PB::Model::EnumField $b) is export {
 
 class PB::Model::Enum {
     has Str $.name;
-    has Array[PB::Model::Option] @.options;
-    has Array[PB::Model::EnumField] @.fields;
+    has PB::Model::Option @.options;
+    has PB::Model::EnumField @.fields;
 
     method new(Str :$name!, :@options?, :@fields?) { # todo: put type qualifiers on these params, when it works in rakudo again
         die "name is required to be a string of non-zero length" unless $name.chars;

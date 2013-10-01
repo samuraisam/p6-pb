@@ -4,10 +4,10 @@ use PB::Model::Extension;
 
 class PB::Model::Message {
     has Str $.name;
-    has Array[PB::Model::Field] @.fields;
-    has Array[PB::Model::Enum] @.enums;
-    has Array[PB::Model::Message] @.messages;
-    has Array[PB::Model::ExtensionField] @.extensions;
+    has PB::Model::Field @.fields;
+    has PB::Model::Enum @.enums;
+    has PB::Model::Message @.messages;
+    has PB::Model::ExtensionField @.extensions;
 
     method new(Str :$name!, :@fields?, :@enums?, :@messages?, :@extensions?) {
         if !$name.chars {
