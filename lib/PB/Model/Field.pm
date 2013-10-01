@@ -11,7 +11,7 @@ class PB::Model::Field {
         if !$label.chars || !$type.chars || !$name.chars {
             die "label, type, and name must all be a string with non-zero length";
         }
-        self.bless(*, name => $name, label => $label, type => $type, number => $number, options => @options);
+        self.bless(name => $name, label => $label, type => $type, number => $number, options => @options);
     }
 
     method gist() {

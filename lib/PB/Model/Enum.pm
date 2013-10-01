@@ -6,7 +6,7 @@ class PB::Model::EnumField {
     has Array[PB::Model::Option] @.options;
 
     method new(Str :$name!, Int :$value!, :@options?) {
-        self.bless(*, name => $name, value => $value, options => @options);
+        self.bless(name => $name, value => $value, options => @options);
     }
 }
 
@@ -26,7 +26,7 @@ class PB::Model::Enum {
 
     method new(Str :$name!, :@options?, :@fields?) { # todo: put type qualifiers on these params, when it works in rakudo again
         die "name is required to be a string of non-zero length" unless $name.chars;
-        self.bless(*, name => $name, options => @options, fields => @fields);
+        self.bless(name => $name, options => @options, fields => @fields);
     }
 }
 

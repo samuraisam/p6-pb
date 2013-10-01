@@ -13,7 +13,7 @@ class PB::Model::Extension {
 
     method new(Str :$name!, :@fields?) {
         die "name must be a string of non-zero length" unless $name.chars;
-        self.bless(*, :name($name), :fields(@fields));
+        self.bless(:name($name), :fields(@fields));
     }
 }
 
@@ -29,7 +29,7 @@ class PB::Model::ExtensionField {
     has Int $.end;
 
     method new (Int :$start!, Int :$end?) {
-        self.bless(*, :start($start), :end($end));
+        self.bless(:start($start), :end($end));
     }
 }
 
