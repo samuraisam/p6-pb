@@ -27,3 +27,5 @@ if run('which', 'svn') == 0 {
 } else {
     say 'svn is not installed... skipping official protobuf tests';
 }
+
+done;

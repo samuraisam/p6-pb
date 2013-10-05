@@ -280,3 +280,5 @@ sub gr_ok($text, $rule, $expected, $desc?) {
             PB::Model::ExtensionField.new(start=>101, end=>PB::Model::ExtensionField::MAX)]),
         'message w/ 2 extensions (one of which is MAX)';
 }
+
+done;
