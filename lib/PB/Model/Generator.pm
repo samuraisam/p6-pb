@@ -42,11 +42,11 @@ our sub EXPORT(*@args) {
     # parse file and generate the AST
     my $desc = slurp @args[0];
     my $actions := PB::Actions.new();
-    my $ast := PB::Grammar.parse($desc, :actions($actions)).ast;
+    my $ast := PB::Grammar.parse($desc, :$actions).ast;
     die "failed to parse {@args[0]}" unless $ast;
 
     # create a new class for everything in the ast
-    my $gen = PB::Model::Generator.new(ast => $ast, prefix => @args[1] // '');
+    my $gen = PB::Model::Generator.new(:$ast, :prefix(@args[1] // ''));
 
     # export these symbols
     %(gather for $gen.all-classes -> $name, $type { 

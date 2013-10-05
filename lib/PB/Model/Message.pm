@@ -13,8 +13,7 @@ class PB::Model::Message {
         if !$name.chars {
             die "name must be a string of non-zero length";
         }
-        self.bless(name => $name, fields => @fields, enums => @enums, 
-                      messages => @messages, extensions => @extensions);
+        self.bless(:$name, :@fields, :@enums, :@messages, :@extensions);
     }
 
     method gist() {

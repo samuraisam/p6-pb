@@ -12,7 +12,7 @@ class PB::Model::Option {
         if !($constant.defined ?^ $sub-message.defined) {
             die "either constant OR sub-message must be provided, not both";
         }
-        self.bless(name => $name, constant => $constant, sub-message => $sub-message);
+        self.bless(:$name, :$constant, :$sub-message);
     }
 
     method gist() {

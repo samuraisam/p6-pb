@@ -7,7 +7,7 @@ sub parse-idl-str($protofile) is export {
     my $actions = PB::Actions.new();
     my $result;
     die "unable to parse file" 
-        unless $result = PB::Grammar.parse($protofile, :actions($actions));
+        unless $result = PB::Grammar.parse($protofile, :$actions);
     $result.ast;
 }
 
