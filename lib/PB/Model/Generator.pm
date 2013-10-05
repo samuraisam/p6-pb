@@ -15,7 +15,7 @@ class PB::Model::Generator {
 
     method gen-class-name($obj) {
         # say 'prefix: ', $.prefix ~ $obj.name;
-        try { $obj.name.chars ?? $obj.name !! die } // ANON_NAME;
+        $obj.name || ANON_NAME;
     }
 
     multi method gen-class(PB::Model::Package $pkg) {
