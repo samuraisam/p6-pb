@@ -19,22 +19,14 @@ class PB::Model::Field {
     }
 }
 
-multi infix:<eq>(PB::Model::Field $a, PB::Model::Field $b) is export {
-    my @aopts = ($a.options // []);
-    my @bopts = ($b.options // []);
-    # say 'field eq: ', ($a.label eq $b.label),
-    #          ($a.type eq $b.type),
-    #          ($a.name eq $b.name),
-    #          ($a.number eq $b.number),
-    #          # ($a.options // []) eqv ($b.options // []);
-    #          [&&](@aopts Zeq @bopts),
-    #          (@aopts == @bopts).perl;
-    return 
-        [&&] ($a.label eq $b.label),
-             ($a.type eq $b.type),
-             ($a.name eq $b.name),
-             ($a.number eq $b.number),
-             # ($a.options // []) eqv ($b.options // []); # <-- should this work instead of the below? it doesn't call the custom eq
-             [&&](@aopts Zeq @bopts),
-             (@aopts == @bopts);
+multi infix:<eqv>(PB::Model::Field $a, PB::Model::Field $b) is export {
+    [&&] $a.type eq $b.type,
+         $a.name eq $b.name,
+         $a.label eq $b.label,
+         $a.number == $b.number,
+         $a.options eqv $b.options;
+}
+
+multi infix:<eqv>(PB::Model::Field @a, PB::Model::Field @b) is export {
+    @a.elems == @b.elems && @a Zeqv @b;
 }

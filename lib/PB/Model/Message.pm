@@ -21,19 +21,14 @@ class PB::Model::Message {
     }
 }
 
-sub array-attrs-eq(Str $field!, $a!, $b!) {
-    my @aval = $a."$field"();
-    my @bval = $b."$field"();
-    (@aval == @bval) && [&&](@aval Zeq @bval);
+multi infix:<eqv>(PB::Model::Message $a, PB::Model::Message $b) is export {
+    [&&] $a.name eq $b.name,
+         $a.enums eqv $b.enums,
+         $a.fields eqv $b.fields,
+         $a.messages eqv $b.messages,
+         $a.extensions eqv $b.extensions;
 }
 
-multi infix:<eq>(PB::Model::Message $a, PB::Model::Message $b) is export {
-    [&&]
-        array-attrs-eq(<fields>, $a, $b),
-        array-attrs-eq(<enums>, $a, $b),
-        array-attrs-eq(<messages>, $a, $b),
-        array-attrs-eq(<extensions>, $a, $b),
-        ($a.name eq $b.name);
+multi infix:<eqv>(PB::Model::Message @a, PB::Model::Message @b) is export {
+    @a.elems == @b.elems && @a Zeqv @b;
 }
-
-

@@ -1,12 +1,5 @@
 use PB::Model::Field;
 
-# todo: find a better way to do this than copy-pasta
-sub array-attrs-eq(Str $field!, $a!, $b!) {
-    my @aval = $a."$field"();
-    my @bval = $b."$field"();
-    (@aval == @bval) && [&&](@aval Zeq @bval);
-}
-
 class PB::Model::Extension {
     has Str $.name; # original message name
     has PB::Model::Field @.fields;
@@ -17,9 +10,14 @@ class PB::Model::Extension {
     }
 }
 
-multi infix:<eq>(PB::Model::Extension $a, PB::Model::Extension $b) is export {
-    array-attrs-eq(<fields>, $a, $b) && $a.name eq $b.name;
+multi infix:<eqv>(PB::Model::Extension $a, PB::Model::Extension $b) is export {
+    $a.name eq $b.name && $a.fields eqv $b.fields;
 }
+
+multi infix:<eqv>(PB::Model::Extension @a, PB::Model::Extension @b) is export {
+    @a.elems == @b.elems && @a Zeqv @b;
+}
+
 
 class PB::Model::ExtensionField {
     # the maximum extension number
@@ -33,6 +31,10 @@ class PB::Model::ExtensionField {
     }
 }
 
-multi infix:<eq>(PB::Model::ExtensionField $a, PB::Model::ExtensionField $b) is export {
+multi infix:<eqv>(PB::Model::ExtensionField $a, PB::Model::ExtensionField $b) is export {
     $a.start == $b.start && ((!$a.end && !$b.end) || $a.end == $b.end);
+}
+
+multi infix:<eqv>(PB::Model::ExtensionField @a, PB::Model::ExtensionField @b) is export {
+    @a.elems == @b.elems && @a Zeqv @b;
 }
