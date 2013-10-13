@@ -69,10 +69,10 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     ok PB::Model::Option.new(name => 'y', constant => 0), 'construct option w/ falsey constant';
     nok (try PB::Model::Option.new(name => 'x', sub-message => PB::SubMesg.new(), constant=> 'x')), 'dont construct option with both constant and sub message';
     # todo: construct / equality tests for options with sub messages
-    ok PB::Model::Option.new(name => 'x', constant => 'a') eq PB::Model::Option.new(name => 'x', constant => 'a'), 'option equal';
-    nok PB::Model::Option.new(name => 'x', constant => 'a') eq PB::Model::Option.new(name => 'y', constant => 'a'), 'option not equal';
-    ok PB::Model::Option.new(name => 'x', constant => 'y') eq PB::Model::Option.new(name => 'x', constant => 'y'), 'option w/ constant equal';
-    nok PB::Model::Option.new(name => 'x', constant => 0) eq PB::Model::Option.new(name => 'x', constant => 1), 'option w/ constant equal';
+    is_eqv PB::Model::Option.new(name => 'x', constant => 'a'), PB::Model::Option.new(name => 'x', constant => 'a'), 'option equal';
+    isnt_eqv PB::Model::Option.new(name => 'x', constant => 'a'), PB::Model::Option.new(name => 'y', constant => 'a'), 'option not equal';
+    is_eqv PB::Model::Option.new(name => 'x', constant => 'y'), PB::Model::Option.new(name => 'x', constant => 'y'), 'option w/ constant equal';
+    isnt_eqv PB::Model::Option.new(name => 'x', constant => 0), PB::Model::Option.new(name => 'x', constant => 1), 'option w/ constant equal';
     nok (try PB::Model::Option.new(:name(''), :constant(''))), 'option with empty string name';
 
     # parsing
@@ -104,16 +104,17 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     my $field2 = PB::Model::Field.new(name=>'name', label=>'required', type=>'int32', number=>1);
     my $fopt = PB::Model::Option.new(name=>'default', constant=>0);
     my $fopt2 = PB::Model::Option.new(name=>'default', constant=>0);
-    ok [&&]([$fopt] Zeq [$fopt2]), 'option equality sanity test';
+    is_eqv (my PB::Model::Option @ = $fopt,), (my PB::Model::Option @ = $fopt2,), 'option equality sanity test';
+    is_eqv $fopt, $fopt2, 'option equality sanity test, unwrapped';
 
-    ok $field eq $field, 'field equality to self';
-    ok $field eq $field2, 'basic field equality';
-    nok $field eq $field2.clone(number=>2), 'field non-equality with different numbers';
-    nok $field eq $field2.clone(name=>'othername'), 'field non-equality with different names';
-    nok $field eq $field2.clone(label=>'optional'), 'field non-equality with different labels';
-    nok $field eq $field2.clone(:options($fopt)), 'field non-equality one with and one without options';
-    ok $field.clone(:options($fopt)) eq $field2.clone(:options($fopt2)), 'field equality with same options';
-    nok $field.clone(:options($fopt.clone(constant=>1))) eq $field2.clone(:options($fopt2)), 'field non-equality with different options';
+    is_eqv $field, $field, 'field equality to self';
+    is_eqv $field, $field2, 'basic field equality';
+    isnt_eqv $field, $field2.clone(number=>2), 'field non-equality with different numbers';
+    isnt_eqv $field, $field2.clone(name=>'othername'), 'field non-equality with different names';
+    isnt_eqv $field, $field2.clone(label=>'optional'), 'field non-equality with different labels';
+    isnt_eqv $field, $field2.clone(:options($fopt)), 'field non-equality one with and one without options';
+    is_eqv $field.clone(:options($fopt)), $field2.clone(:options($fopt2)), 'field equality with same options';
+    isnt_eqv $field.clone(:options($fopt.clone(constant=>1))), $field2.clone(:options($fopt2)), 'field non-equality with different options';
 }
 
 # PB::Model::EnumField
@@ -131,12 +132,12 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     my $efield = PB::Model::EnumField.new(name=>'hello', value=>1);
     my $efield2 = $efield.clone();
 
-    ok $efield eq $efield2, 'enum field equality';
-    nok $efield eq $efield.clone(value=>2), 'enum field name inequality';
-    nok $efield eq $efield.clone(name=>'not hello'), 'enum field name inequality';
-    nok $efield eq $efield.clone(options=>[$efieldopt]), 'enum field option inequality';
-    ok $efieldopt eq $efieldopt.clone, "opt clone equality sanity test";
-    ok $efield.clone(:options($efieldopt)) eq $efield.clone(:options($efieldopt.clone)), 'enum field option equality';
+    is_eqv $efield, $efield2, 'enum field equality';
+    isnt_eqv $efield, $efield.clone(value=>2), 'enum field name inequality';
+    isnt_eqv $efield, $efield.clone(name=>'not hello'), 'enum field name inequality';
+    isnt_eqv $efield, $efield.clone(options=>[$efieldopt]), 'enum field option inequality';
+    is_eqv $efieldopt, $efieldopt.clone, "opt clone equality sanity test";
+    is_eqv $efield.clone(:options($efieldopt)), $efield.clone(:options($efieldopt.clone)), 'enum field option equality';
 }
 
 # PB::Model::Enum
@@ -155,17 +156,17 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     my $enum = PB::Model::Enum.new(name=>'hello', options=>[$eopt], fields=>[$efield]);
     my $enum2 = $enum.clone();
 
-    ok $enum eq $enum2, 'enum equality';
-    nok $enum eq $enum2.clone(name=>'shit'), 'enum name inequality';
+    is_eqv $enum, $enum2, 'enum equality';
+    isnt_eqv $enum, $enum2.clone(name=>'shit'), 'enum name inequality';
 
     my $efield3 = $efield.clone(name=>'not hello');
-    nok $efield eq $efield3, 'field clone sanity test';
+    isnt_eqv $efield, $efield3, 'field clone sanity test';
     my $enum3 = $enum2.clone(:fields($efield3));
-    nok $enum2 eq $enum3, 'enum clone sanity test';
+    isnt_eqv $enum2, $enum3, 'enum clone sanity test';
 
-    nok $enum eq ($enum2.clone(:fields($efield.clone(name=>'not hello')))), 'enum fields inequality';
-    nok $enum eq $enum3, 'enum fields inequality';
-    nok $enum eq $enum2.clone(:options($eopt.clone(constant=>1))), 'enum opts inequality';
+    isnt_eqv $enum, ($enum2.clone(:fields($efield.clone(name=>'not hello')))), 'enum fields inequality';
+    isnt_eqv $enum, $enum3, 'enum fields inequality';
+    isnt_eqv $enum, $enum2.clone(:options($eopt.clone(constant=>1))), 'enum opts inequality';
 
     # parsing
     gr_ok 'enum TEST { }', <enum>, PB::Model::Enum.new(name=>'TEST'), 'basic empty enum creation';
@@ -189,11 +190,11 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     # equality
     my $extf = PB::Model::ExtensionField.new(start=>0, end=>1);
     my $extf2 = $extf.clone();
-    ok $extf eq $extf2, 'extension field equality';
-    nok $extf eq $extf2.clone(end=>2), 'extension field end inequality';
-    nok $extf eq $extf2.clone(start=>1), 'extension field start inequality';
-    ok PB::Model::ExtensionField.new(start=>1) eq PB::Model::ExtensionField.new(start=>1), 'extension field equality without an end';
-    nok PB::Model::ExtensionField.new(start=>2) eq PB::Model::ExtensionField.new(start=>1), 'extension field inequality without an end';
+    is_eqv $extf, $extf2, 'extension field equality';
+    isnt_eqv $extf, $extf2.clone(end=>2), 'extension field end inequality';
+    isnt_eqv $extf, $extf2.clone(start=>1), 'extension field start inequality';
+    isnt_eqv PB::Model::ExtensionField.new(start=>1), PB::Model::ExtensionField.new(start=>1), 'extension field equality without an end';
+    isnt_eqv PB::Model::ExtensionField.new(start=>2), PB::Model::ExtensionField.new(start=>1), 'extension field inequality without an end';
 
     # parsing
     gr_ok '1 to 2', <extension>, PB::Model::ExtensionField.new(start=>1, end=>2), 'extension field regular parse';
@@ -215,42 +216,42 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     my $msg3 = PB::Model::Message.new(:name<a>, :fields[$mfield.clone(:name<otherfieldname>)]);
 
     # equality
-    ok $msg eq $msg2, 'message equality';
-    nok $msg eq $msg3, 'message inequality';
-    nok $msg eq $msg.clone(:name<b>), 'message name inequality';
-    ok PB::Model::Message.new(:name<a>) eq PB::Model::Message.new(:name<a>), 'empty message equality';
+    is_eqv $msg, $msg2, 'message equality';
+    isnt_eqv $msg, $msg3, 'message inequality';
+    isnt_eqv $msg, $msg.clone(:name<b>), 'message name inequality';
+    is_eqv PB::Model::Message.new(:name<a>), PB::Model::Message.new(:name<a>), 'empty message equality';
 
     # w/ enum
     my $menum = PB::Model::Enum.new(name=>'KIND', fields=>[PB::Model::EnumField.new(name=>'STR', value=>1)]);
     my $menum2 = PB::Model::Enum.new(name=>'KIND', fields=>[PB::Model::EnumField.new(name=>'INT', value=>1)]);
-    nok $menum eq $menum2, 'message enum inequality sanity check';
+    isnt_eqv $menum, $menum2, 'message enum inequality sanity check';
 
     $msg = PB::Model::Message.new(:name<a>, :enums[$menum]);
     $msg2 = $msg.clone(:enums[$menum2]);
 
-    nok $msg eq $msg2, 'message enum ineqauality';
-    ok $msg eq $msg.clone(:enums($menum)), 'message enum equality';
+    isnt_eqv $msg, $msg2, 'message enum ineqauality';
+    is_eqv $msg, $msg.clone(:enums($menum)), 'message enum equality';
 
     # with a contained message
     my $mmessage = PB::Model::Message.new(name=>'hello', fields=>[
         PB::Model::Field.new(label=>'required', type=>'int32', name=>'helloval', number=>1)]);
     my $mmessage2 = $mmessage.clone(:fields($mmessage.fields[0].clone(:label<optional>)));
 
-    nok $mmessage eq $mmessage2, 'message containing message inequality - sanity test';
-    ok $mmessage eq $mmessage2.clone(:fields($mmessage.fields[0].clone)), 'message containing message equality - sanity test';
+    isnt_eqv $mmessage, $mmessage2, 'message containing message inequality - sanity test';
+    is_eqv $mmessage, $mmessage2.clone(:fields($mmessage.fields[0].clone)), 'message containing message equality - sanity test';
 
     my $mmsg = PB::Model::Message.new(name=>'X', messages=>[$mmessage]);
     my $mmsg2 = PB::Model::Message.new(name=>'X', messages=>[$mmessage2]);
 
-    nok $mmsg eq $mmsg2, 'message containing message inequality';
-    ok $mmsg eq $mmsg2.clone(:messages($mmsg.messages[0].clone)), 'message containing message equality';
+    isnt_eqv $mmsg, $mmsg2, 'message containing message inequality';
+    is_eqv $mmsg, $mmsg2.clone(:messages($mmsg.messages[0].clone)), 'message containing message equality';
 
     # message w/ extensions
     ok PB::Model::Message.new(name=>'hello', extensions=>[PB::Model::ExtensionField.new(start=>1)]), 'message creation w/ extension';
     my $emsg = PB::Model::Message.new(:name<a>, :extensions([PB::Model::ExtensionField.new(start=>1)]));
     my $emsg2 = $emsg.clone(:extensions($emsg.extensions[0].clone(start=>2)));
-    nok $emsg eq $emsg2, 'message w/ extension ineqauality';
-    ok $emsg eq $emsg2.clone(:extensions($emsg.extensions[0])), 'message w/ extensions equality';
+    isnt_eqv $emsg, $emsg2, 'message w/ extension ineqauality';
+    is_eqv $emsg, $emsg2.clone(:extensions($emsg.extensions[0])), 'message w/ extensions equality';
 }
 
 # PB::Model::Message parsing
@@ -282,8 +283,8 @@ sub gr_ok($text, $rule, $expected, $desc?) {
                 PB::Model::Enum.new(name=>'Y', fields=>[PB::Model::EnumField.new(name=>'Z', value=>1)])])]),
         'message w/ message w/ enum w/ field';
 
-    ok PB::Model::Message.new(name=>'M', extensions=>[
-            PB::Model::ExtensionField.new(start=>1, end=>100)]) eq PB::Model::Message.new(name=>'M', extensions=>[
+    is_eqv PB::Model::Message.new(name=>'M', extensions=>[
+            PB::Model::ExtensionField.new(start=>1, end=>100)]), PB::Model::Message.new(name=>'M', extensions=>[
             PB::Model::ExtensionField.new(start=>1, end=>100)]), 'message w/ extension cmp sanity';
 
     gr_ok 'message M{extensions 1 to 100;}', <message>,
