@@ -7,16 +7,33 @@ use PB::Model::Option;
 use PB::Model::Enum;
 use PB::Model::Extension;
 
-# tests a grammer rule for an expected output
-sub gr_ok($text, $rule, $expected, $desc?) { 
-    my $actions = PB::Actions.new;
-    my $result = PB::Grammar.parse($text, rule => $rule, actions => $actions).ast;
-    my $isok = $result eq $expected;
-    unless $isok {
-        say ' expected: ', $expected.perl;
-        say '   result: ', $result.perl;
+# Cribbed from Test.pm's is_deeply(), to work around a language limitation
+# which prevents an independently compiled module (Test.pm in this case)
+# from seeing multi candidates defined in a lexical scope it couldn't see
+# at compile time.  See discussion starting at:
+#     http://irclog.perlgeek.de/perl6/2013-10-06#i_7677518
+sub is_eqv(Mu $got, Mu $expected, $reason = '') {
+    my  $ok = ok($got eqv $expected, $reason);
+    if !$ok {
+        my $got_perl      = try { $got.perl };
+        my $expected_perl = try { $expected.perl };
+        if $got_perl.defined && $expected_perl.defined {
+            diag "     got: $got_perl";
+            diag "expected: $expected_perl";
+        }
     }
-    ok $isok, $desc;
+    return $ok;
+}
+
+sub isnt_eqv(Mu $got, Mu $expected, $reason = '') {
+    return nok($got eqv $expected, $reason);
+}
+
+# tests a grammer rule for an expected output
+sub gr_ok($text, $rule, $expected, $desc?) {
+    my $actions = PB::Actions.new;
+    my $result = PB::Grammar.parse($text, :$rule, :$actions).ast;
+    return is_eqv($result, $expected, $desc);
 }
 
 # string constants
