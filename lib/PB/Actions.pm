@@ -158,7 +158,7 @@ class PB::Actions {
     }
 
     method int-lit:sym<dec>($/) {
-        make $/.Str.Num;
+        make $/.Str.Int;
     }
 
     method int-lit:sym<hex>($/) {
