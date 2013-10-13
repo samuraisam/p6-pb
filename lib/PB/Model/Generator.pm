@@ -37,7 +37,7 @@ class PB::Model::Generator {
     }
 }
 
-# args = :#filename!, :$class-prefix?
+# args = $filename!, $class-prefix?
 our sub EXPORT(*@args) {
     # parse file and generate the AST
     my $desc = slurp @args[0];
