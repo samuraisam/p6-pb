@@ -7,7 +7,7 @@ class PB::Model::Field {
     has Int $.number;
     has PB::Model::Option @.options;
 
-    method new(Str :$label!, Str :$type!, Str :$name!, Int :$number!, :@options) {
+    method new(Str :$label!, Str :$type!, Str :$name!, Int :$number!, :@options?) {
         if !$label.chars || !$type.chars || !$name.chars {
             die "label, type, and name must all be a string with non-zero length";
         }
