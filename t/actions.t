@@ -51,9 +51,9 @@ sub gr_ok($text, $rule, $expected, $desc?) {
     gr_ok "1", <constant>, 1, 'int-lit basic decimal';
     gr_ok "0xf4", <constant>, 244, 'int-lit basic hex';
     gr_ok "070", <constant>, 56, 'int-lit basic oct';
-    gr_ok "1.0", <constant>, 1.0, 'constant float';
+    gr_ok "1.0", <constant>, 1.0e0, 'constant float';
     gr_ok "1.0e40", <constant>, 1.0e40, 'constant exponential float';
-    gr_ok ".01", <constant>, 0.01, 'constant float w/o leading zero';
+    gr_ok ".01", <constant>, 0.01e0, 'constant float w/o leading zero';
     gr_ok 'false', <constant>, False, 'constant false';
     gr_ok 'true', <constant>, True, 'constant true';
     gr_ok 'inf', <constant>, Inf, 'constant positive Inf';
@@ -77,7 +77,7 @@ sub gr_ok($text, $rule, $expected, $desc?) {
 
     # parsing
     gr_ok 'option x = 1;', <option>, PB::Model::Option.new(name => 'x', constant => 1), 'option int const';
-    gr_ok 'option x = 1.0;', <option>, PB::Model::Option.new(name => 'x', constant => 1.0), 'option float const';
+    gr_ok 'option x = 1.0;', <option>, PB::Model::Option.new(name => 'x', constant => 1.0e0), 'option float const';
     gr_ok 'option x = 0xf4;', <option>, PB::Model::Option.new(name => 'x', constant => 244), 'option hex const';
     gr_ok 'option x = 070;', <option>, PB::Model::Option.new(name => 'x', constant => 56), 'option opt const';
     gr_ok 'option x = -.2e5;', <option>, PB::Model::Option.new(name => 'x', constant => -.2e5), 'option float exponent';
