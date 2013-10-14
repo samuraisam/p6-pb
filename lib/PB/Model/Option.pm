@@ -9,21 +9,23 @@ class PB::Model::Option {
         if !$name.chars {
             die "name must not be zero length";
         }
-        if (!$constant.defined && !$sub-message.defined) || ($constant.defined && $sub-message.defined) {
-            die "either constant OR sub-message must be provided"; 
+        if !($constant.defined ?^ $sub-message.defined) {
+            die "either constant OR sub-message must be provided, not both";
         }
-        self.bless(*, name => $name, constant => $constant, sub-message => $sub-message);
+        self.bless(:$name, :$constant, :$sub-message);
     }
 
     method gist() {
-        "<Option {$.name}={$.constant.defined ?? $.constant !! 'Any'}>"
+        "<Option $.name={$.constant // 'Any'}>"
     }
 }
 
-multi infix:<eq>(PB::Model::Option $a, PB::Model::Option $b) is export {
-    # say "$a = $b";
-    return
-        [&&] ($a.name eq $b.name),
-             ($a.constant // Nil) eq ($b.constant // Nil),
-             ($a.sub-message // Nil) eq ($b.sub-message // Nil);
+multi infix:<eqv>(PB::Model::Option $a, PB::Model::Option $b) is export {
+    [&&] $a.name eq $b.name,
+         $a.constant eqv $b.constant,
+         $a.sub-message eqv $b.sub-message;
+}
+
+multi infix:<eqv>(PB::Model::Option @a, PB::Model::Option @b) is export {
+    @a.elems == @b.elems && @a Zeqv @b;
 }
