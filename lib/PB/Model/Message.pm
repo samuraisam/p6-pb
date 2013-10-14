@@ -4,17 +4,16 @@ use PB::Model::Extension;
 
 class PB::Model::Message {
     has Str $.name;
-    has Array[PB::Model::Field] @.fields;
-    has Array[PB::Model::Enum] @.enums;
-    has Array[PB::Model::Message] @.messages;
-    has Array[PB::Model::ExtensionField] @.extensions;
+    has PB::Model::Field @.fields;
+    has PB::Model::Enum @.enums;
+    has PB::Model::Message @.messages;
+    has PB::Model::ExtensionField @.extensions;
 
     method new(Str :$name!, :@fields?, :@enums?, :@messages?, :@extensions?) {
         if !$name.chars {
             die "name must be a string of non-zero length";
         }
-        self.bless(*, name => $name, fields => @fields, enums => @enums, 
-                      messages => @messages, extensions => @extensions);
+        self.bless(:$name, :@fields, :@enums, :@messages, :@extensions);
     }
 
     method gist() {
@@ -22,19 +21,14 @@ class PB::Model::Message {
     }
 }
 
-sub array-attrs-eq(Str $field!, $a!, $b!) {
-    my @aval = $a."$field"();
-    my @bval = $b."$field"();
-    (@aval == @bval) && [&&](@aval Zeq @bval);
+multi infix:<eqv>(PB::Model::Message $a, PB::Model::Message $b) is export {
+    [&&] $a.name eq $b.name,
+         $a.enums eqv $b.enums,
+         $a.fields eqv $b.fields,
+         $a.messages eqv $b.messages,
+         $a.extensions eqv $b.extensions;
 }
 
-multi infix:<eq>(PB::Model::Message $a, PB::Model::Message $b) is export {
-    [&&]
-        array-attrs-eq(<fields>, $a, $b),
-        array-attrs-eq(<enums>, $a, $b),
-        array-attrs-eq(<messages>, $a, $b),
-        array-attrs-eq(<extensions>, $a, $b),
-        ($a.name eq $b.name);
+multi infix:<eqv>(PB::Model::Message @a, PB::Model::Message @b) is export {
+    @a.elems == @b.elems && @a Zeqv @b;
 }
-
-
