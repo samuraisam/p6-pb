@@ -1,0 +1,6 @@
+If you're just getting started with Protocol Buffers, start with Google's
+official documentation at https://developers.google.com/protocol-buffers/ ,
+especially the sections of the Developer Guide and FAQ.  We'll cover the
+Perl 6 API here, but you may find the API documentation for other
+languages interesting for comparison or historical purposes.
+
