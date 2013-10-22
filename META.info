@@ -1,0 +1,7 @@
+{
+    "name":        "Protocol-Buffers",
+    "version":     "0.0.1",
+    "description": "Google Protocol Buffers",
+    "author":      "Samuel Sutch",
+    "depends":     []
+}
