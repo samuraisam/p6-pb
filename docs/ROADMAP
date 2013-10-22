@@ -1,0 +1,12 @@
+The Perl 6 Protocol Buffers project is currently still in the early stages:
+it can successfully parse a valid `.proto` file into an AST (and does so for
+Google's official `.proto` test files), but there is much more to be done
+before a first release.  In no particular order:
+
+* Generate classes for in-memory management of message data
+* Encode and decode binary PBs
+* Parse and emit text PBs
+* Parse RPC service declarations
+* Wire up all pieces into a cohesive API
+* Lots more testing
+* Docs: API, Perl 6-specific quirks, etc.
