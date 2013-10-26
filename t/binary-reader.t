@@ -3,6 +3,9 @@ use v6;
 use Test;
 use PB::Binary::Reader;
 
+
+# DECODING TESTS
+
 # Tests for decode-field-key()
 sub test-decode-field-key($key, $expected-tag, $expected-type) {
     my ($tag, $type) = decode-field-key($key);
@@ -33,23 +36,26 @@ for @zigzag-pairs.list -> $coded, $decoded {
     is decode-zigzag(+$coded), +$decoded, "decode-zigzag($coded) works";
 }
 
-# Buffer-reading tests
+
+# BUFFER-READING TESTS
+
+# Trivial buffer (first example in Google's encoding docs)
 my $trivial = blob8.new(0x08, 0x96, 0x01);
 my $offset  = 0;
 my $key     = read-varint($trivial, $offset);
-is $key,    8, "1-byte varint at offset 0 read correctly";
-is $offset, 1, "... and offset was updated correctly";
+is $key,    8, '1-byte varint at offset 0 read correctly';
+is $offset, 1, '... and offset was updated correctly';
 
 my $value = read-varint($trivial, $offset);
-is $value, 150, "2-byte varint at offset 1 read correctly";
-is $offset,  3, "... and offset was updated correctly";
+is $value, 150, '2-byte varint at offset 1 read correctly';
+is $offset,  3, '... and offset was updated correctly';
 
 $offset = 0;
 my $pb-pair = read-pair($trivial, $offset);
 is $pb-pair[0],   1, 'Field tag 1 properly decoded';
 is $pb-pair[1],   0, 'Wire type 0 properly decoded';
 is $pb-pair[2], 150, 'Field value 150 properly decoded';
-is $offset,       3, "... and offset was updated correctly";
+is $offset,       3, '... and offset was updated correctly';
 
 
 # Tell prove that we've completed testing normally

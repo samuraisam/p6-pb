@@ -1,6 +1,14 @@
 use v6;
 
+#= Low level binary PB reader
+
 module PB::Binary::Reader;
+
+
+# SECURITY: Depends on the behavior of Blob.[] returning 0 for out of bounds
+#           access (which e.g. makes read-varint self-terminate if it runs
+#           off the end of the blob).
+
 
 class X::PB::Binary::Invalid is Exception {
     has $.offset;
