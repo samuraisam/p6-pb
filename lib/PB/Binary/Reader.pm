@@ -20,6 +20,18 @@ class X::PB::Binary::Invalid is Exception {
 }
 
 
+#= Convert combined field key to (field tag number, wire type)
+sub decode-field-key($key) is export {
+    ($key +> 3, $key +& 7)
+}
+
+
+#= Decode a zigzag-encoded signed number
+sub decode-zigzag($zigzag) is export {
+    ($zigzag +> 1) +^ -($zigzag +& 1)
+}
+
+
 #= Read a varint from a buffer at a given offset, updating the offset
 sub read-varint($buffer, $offset is rw) is export {
     my Int $value = 0;
@@ -59,19 +71,7 @@ sub read-fixed64($buffer, $offset is rw) is export {
 }
 
 
-#= Convert varint field key to (field tag number, wire type)
-sub decode-field-key($key) is export {
-    ($key +> 3, $key +& 7)
-}
-
-
-#= Decode a zigzag-encoded signed number
-sub decode-zigzag($zigzag) is export {
-    ($zigzag +> 1) +^ -($zigzag +& 1)
-}
-
-
-# Read a kv pair from a buffer at a given offset, updating the offset
+#= Read a kv pair from a buffer at a given offset, updating the offset
 sub read-pair($buffer, $offset is rw) is export {
     my $orig-offset = $offset;
     my ($field-tag, $wire-type)
@@ -79,7 +79,7 @@ sub read-pair($buffer, $offset is rw) is export {
 
     my $value = do given $wire-type {
         # Just plain values: varint, 64-bit, 32-bit
-        when 0   { read-varint($buffer, $offset) }
+        when 0   { read-varint( $buffer, $offset) }
         when 1   { read-fixed64($buffer, $offset) }
         when 5   { read-fixed32($buffer, $offset) }
 
