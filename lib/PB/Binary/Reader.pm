@@ -37,6 +37,28 @@ sub read-varint($buffer, $offset is rw) is export {
 }
 
 
+#= Read a 32-bit (wire type 5) value from a buffer at a given offset, updating the offset
+sub read-fixed32($buffer, $offset is rw) is export {
+      $buffer[$offset++]
+    + $buffer[$offset++] +<  8
+    + $buffer[$offset++] +< 16
+    + $buffer[$offset++] +< 24
+}
+
+
+#= Read a 64-bit (wire type 1) value from a buffer at a given offset, updating the offset
+sub read-fixed64($buffer, $offset is rw) is export {
+      $buffer[$offset++]
+    + $buffer[$offset++] +<  8
+    + $buffer[$offset++] +< 16
+    + $buffer[$offset++] +< 24
+    + $buffer[$offset++] +< 32
+    + $buffer[$offset++] +< 40
+    + $buffer[$offset++] +< 48
+    + $buffer[$offset++] +< 56
+}
+
+
 #= Convert varint field key to (field tag number, wire type)
 sub decode-field-key($key) is export {
     ($key +> 3, $key +& 7)
@@ -56,17 +78,21 @@ sub read-pair($buffer, $offset is rw) is export {
         = decode-field-key(read-varint($buffer, $offset));
 
     my $value = do given $wire-type {
-        # Just a plain varint
-        when 0       { read-varint($buffer, $offset) }
+        # Just plain values: varint, 64-bit, 32-bit
+        when 0   { read-varint($buffer, $offset) }
+        when 1   { read-fixed64($buffer, $offset) }
+        when 5   { read-fixed32($buffer, $offset) }
 
         # Length-delimited
-        when 2       {
+        when 2   {
             my $length = read-varint($buffer, $offset);
             ($offset, $length);
         }
 
-        when 1|3|4|5 { die "XXXX: Can't handle wire type $_" }
-        default      {
+        # XXXX: Groups (unsupported, deprecated by Google)
+        when 3|4 { die "XXXX: Can't handle groups (wire type $_)" }
+
+        default  {
             fail X::PB::Binary::Invalid.new(:offset($orig-offset),
                 :reason("wire type $_ for field tag $field-tag"))
         }
