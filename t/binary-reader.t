@@ -57,6 +57,35 @@ is $pb-pair[1],   0, 'Wire type 0 properly decoded';
 is $pb-pair[2], 150, 'Field value 150 properly decoded';
 is $offset,       3, '... and offset was updated correctly';
 
+# Buffer containing fixed size fields
+my $fixed-fields = blob8.new(0x0D, 0x78, 0x56, 0x34, 0x12,
+                             0x11, 0xFE, 0xCA, 0xEF, 0xBE,
+                                   0x78, 0x56, 0x34, 0x12);
+
+$offset = 1;
+my $fixed32 = read-fixed32($fixed-fields, $offset);
+is $fixed32, 0x12345678, '32-bit fixed int at offset 1 read correctly';
+is $offset,  5, '... and offset was updated correctly';
+
+$offset = 6;
+my $fixed64 = read-fixed64($fixed-fields, $offset);
+is $fixed64, 0x12345678BEEFCAFE, '64-bit fixed int at offset 6 read correctly';
+is $offset,  14, '... and offset was updated correctly';
+
+$offset = 0;
+$pb-pair = read-pair($fixed-fields, $offset);
+is $pb-pair[0], 1, 'Field tag 1 properly decoded';
+is $pb-pair[1], 5, 'Wire type 5 properly decoded';
+is $pb-pair[2], 0x12345678, 'Field value 0x12345678 properly decoded';
+is $offset,     5, '... and offset was updated correctly';
+
+$pb-pair = read-pair($fixed-fields, $offset);
+is $pb-pair[0], 2, 'Field tag 2 properly decoded';
+is $pb-pair[1], 1, 'Wire type 1 properly decoded';
+is $pb-pair[2], 0x12345678BEEFCAFE,
+   'Field value 0x12345678BEEFCAFE properly decoded';
+is $offset,     14, '... and offset was updated correctly';
+
 
 # Tell prove that we've completed testing normally
 done;
