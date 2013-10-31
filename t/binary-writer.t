@@ -86,5 +86,27 @@ is_deeply $buffer, $fixed-fields, 'Wrote fixed fields buffer correctly';
 is $offset, 14, '... and offset was updated correctly';
 
 
+# Buffer containing simple length-delimited values: string and bytes
+$buffer := buf8.new();
+$offset  = 1;
+write-blob8($buffer, $offset, blob8.new(0..255));
+is_deeply $buffer.subbuf(1), buf8.new(0..255), 'Wrote bytes 0..255 correctly';
+is $offset, 257, '... and offset was updated correctly';
+
+$buffer := buf8.new();
+$offset  = 1;
+write-blob8($buffer, $offset, 'testing'.encode);
+is $buffer.subbuf(1).decode, 'testing', "Wrote string 'testing' correctly";
+is $offset, 8, '... and offset was updated correctly';
+
+$buffer := buf8.new();
+$offset  = 0;
+write-pair($buffer, $offset, 2, 2, '«①🚀»'.encode);
+is $buffer[0], 18, 'Wrote field key for length delimited field correctly';
+is $buffer[1], 11, 'Wrote field length correctly';
+is $buffer.subbuf(2).decode, '«①🚀»', "Wrote utf-8 string correctly";
+is $offset, 13, '... and offset was updated correctly';
+
+
 # Tell prove that we've completed testing normally
 done;
