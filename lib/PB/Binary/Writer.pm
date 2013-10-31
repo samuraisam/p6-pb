@@ -65,6 +65,28 @@ sub write-fixed64(buf8 $buffer, Int $offset is rw, int $value) is export {
 }
 
 
+#= Write a blob8 into a buffer at a given offset, updating the offset
+sub write-blob8(buf8 $buffer, Int $offset is rw, blob8 $blob8) is export {
+    my $buf  := nqp::decont($buffer);
+    my $blob := nqp::decont($blob8);
+    my int $buflen  = nqp::elems($buf);
+    my int $bloblen = nqp::elems($blob);
+
+    nqp::setelems($buf, $offset + $bloblen)
+           if $buflen < $offset + $bloblen;
+
+    my int $s = 0;
+    my int $d = $offset;
+    while $s < $bloblen {
+        nqp::bindpos_i($buf, $d, nqp::atpos_i($blob, $s));
+        $s = $s + 1;
+        $d = $d + 1;
+    }
+
+    $offset = $d;
+}
+
+
 #= Write a field tag, wire type, and value to a buffer at a given offset, updating the offset
 sub write-pair(buf8 $buffer, Int $offset is rw, int $field-tag, int $wire-type,
                Any $value) is export {
@@ -78,8 +100,13 @@ sub write-pair(buf8 $buffer, Int $offset is rw, int $field-tag, int $wire-type,
 
         # Length-delimited
         when WIRE_TYPE_LENGTH_DELIMITED {
-            die "XXXX: Not handling length-delimited yet (wire type 2)";
             write-varint($buffer, $offset, $value.elems);
+            if $value ~~ blob8 {
+                write-blob8($buffer, $offset, $value);
+            }
+            else {
+                die "XXXX: Not handling length-delimited (wire type $_) for values of type {$value.WHAT} yet";
+            }
         }
 
         # XXXX: Groups (unsupported, deprecated by Google)
