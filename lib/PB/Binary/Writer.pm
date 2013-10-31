@@ -5,6 +5,17 @@ use v6;
 module PB::Binary::Writer;
 
 
+#= Binary wire types
+enum WireType is export <
+    WIRE_TYPE_VARINT
+    WIRE_TYPE_64_BIT
+    WIRE_TYPE_LENGTH_DELIMITED
+    WIRE_TYPE_START_GROUP
+    WIRE_TYPE_END_GROUP
+    WIRE_TYPE_32_BIT
+    >;
+
+
 #= Convert (field tag number, wire type) to a single field key
 sub encode-field-key(int $field-tag, int $wire-type --> int) is pure is export {
     $field-tag +< 3 +| $wire-type
@@ -57,22 +68,25 @@ sub write-fixed64(buf8 $buffer, Int $offset is rw, int $value) is export {
 #= Write a field tag, wire type, and value to a buffer at a given offset, updating the offset
 sub write-pair(buf8 $buffer, Int $offset is rw, int $field-tag, int $wire-type,
                Any $value) is export {
-    die "Invalid wire type $wire-type" unless 0 <= $wire-type <= 5;
     write-varint($buffer, $offset, encode-field-key($field-tag, $wire-type));
 
     given $wire-type {
-        # Just plain values: varint, 64-bit, 32-bit
-        when 0   { write-varint( $buffer, $offset, $value) }
-        when 1   { write-fixed64($buffer, $offset, $value) }
-        when 5   { write-fixed32($buffer, $offset, $value) }
+        # Just plain values: varint, 32-bit, 64-bit
+        when WIRE_TYPE_VARINT { write-varint( $buffer, $offset, $value) }
+        when WIRE_TYPE_32_BIT { write-fixed32($buffer, $offset, $value) }
+        when WIRE_TYPE_64_BIT { write-fixed64($buffer, $offset, $value) }
 
         # Length-delimited
-        when 2   {
+        when WIRE_TYPE_LENGTH_DELIMITED {
             die "XXXX: Not handling length-delimited yet (wire type 2)";
             write-varint($buffer, $offset, $value.elems);
         }
 
         # XXXX: Groups (unsupported, deprecated by Google)
-        when 3|4 { die "XXXX: Can't handle groups (wire type $_)" }
+        when WIRE_TYPE_START_GROUP|WIRE_TYPE_END_GROUP {
+            die "XXXX: Can't handle groups (wire type $_)";
+        }
+
+        default { die "Invalid wire type $_" }
     }
 }
