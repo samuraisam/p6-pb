@@ -1,6 +1,7 @@
 use v6;
 
 use Test;
+use PB::Binary::WireTypes;
 use PB::Binary::Reader;
 
 
@@ -53,7 +54,7 @@ is $offset,  3, '... and offset was updated correctly';
 $offset = 0;
 my $pb-pair = read-pair($trivial, $offset);
 is $pb-pair[0],   1, 'Field tag 1 properly decoded';
-is $pb-pair[1],   0, 'Wire type 0 properly decoded';
+is $pb-pair[1], +WireType::VARINT, 'Wire type VARINT properly decoded';
 is $pb-pair[2], 150, 'Field value 150 properly decoded';
 is $offset,       3, '... and offset was updated correctly';
 
@@ -75,13 +76,13 @@ is $offset,  14, '... and offset was updated correctly';
 $offset = 0;
 $pb-pair = read-pair($fixed-fields, $offset);
 is $pb-pair[0], 1, 'Field tag 1 properly decoded';
-is $pb-pair[1], 5, 'Wire type 5 properly decoded';
+is $pb-pair[1], +WireType::FIXED_32, 'Wire type FIXED_32 properly decoded';
 is $pb-pair[2], 0x12345678, 'Field value 0x12345678 properly decoded';
 is $offset,     5, '... and offset was updated correctly';
 
 $pb-pair = read-pair($fixed-fields, $offset);
 is $pb-pair[0], 2, 'Field tag 2 properly decoded';
-is $pb-pair[1], 1, 'Wire type 1 properly decoded';
+is $pb-pair[1], +WireType::FIXED_64, 'Wire type FIXED_64 properly decoded';
 is $pb-pair[2], 0x12345678BEEFCAFE,
    'Field value 0x12345678BEEFCAFE properly decoded';
 is $offset,     14, '... and offset was updated correctly';

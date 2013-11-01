@@ -4,16 +4,7 @@ use v6;
 
 module PB::Binary::Writer;
 
-
-#= Binary wire types
-enum WireType is export <
-    WIRE_TYPE_VARINT
-    WIRE_TYPE_64_BIT
-    WIRE_TYPE_LENGTH_DELIMITED
-    WIRE_TYPE_START_GROUP
-    WIRE_TYPE_END_GROUP
-    WIRE_TYPE_32_BIT
-    >;
+use PB::Binary::WireTypes;
 
 
 #= Convert (field tag number, wire type) to a single field key
@@ -94,12 +85,12 @@ sub write-pair(buf8 $buffer, Int $offset is rw, int $field-tag, int $wire-type,
 
     given $wire-type {
         # Just plain values: varint, 32-bit, 64-bit
-        when WIRE_TYPE_VARINT { write-varint( $buffer, $offset, $value) }
-        when WIRE_TYPE_32_BIT { write-fixed32($buffer, $offset, $value) }
-        when WIRE_TYPE_64_BIT { write-fixed64($buffer, $offset, $value) }
+        when WireType::VARINT   { write-varint( $buffer, $offset, $value) }
+        when WireType::FIXED_32 { write-fixed32($buffer, $offset, $value) }
+        when WireType::FIXED_64 { write-fixed64($buffer, $offset, $value) }
 
         # Length-delimited
-        when WIRE_TYPE_LENGTH_DELIMITED {
+        when WireType::LENGTH_DELIMITED {
             write-varint($buffer, $offset, $value.elems);
             if $value ~~ blob8 {
                 write-blob8($buffer, $offset, $value);
@@ -110,7 +101,7 @@ sub write-pair(buf8 $buffer, Int $offset is rw, int $field-tag, int $wire-type,
         }
 
         # XXXX: Groups (unsupported, deprecated by Google)
-        when WIRE_TYPE_START_GROUP|WIRE_TYPE_END_GROUP {
+        when WireType::START_GROUP | WireType::END_GROUP {
             die "XXXX: Can't handle groups (wire type $_)";
         }
 

@@ -4,6 +4,8 @@ use v6;
 
 module PB::Binary::Reader;
 
+use PB::Binary::WireTypes;
+
 
 # SECURITY: Depends on the behavior of Blob.[] returning 0 for out of bounds
 #           access (which e.g. makes read-varint self-terminate if it runs
@@ -79,18 +81,20 @@ sub read-pair(blob8 $buffer, Int $offset is rw) is export {
 
     my $value = do given $wire-type {
         # Just plain values: varint, 64-bit, 32-bit
-        when 0   { read-varint( $buffer, $offset) }
-        when 1   { read-fixed64($buffer, $offset) }
-        when 5   { read-fixed32($buffer, $offset) }
+        when WireType::VARINT   { read-varint( $buffer, $offset) }
+        when WireType::FIXED_64 { read-fixed64($buffer, $offset) }
+        when WireType::FIXED_32 { read-fixed32($buffer, $offset) }
 
         # Length-delimited
-        when 2   {
+        when WireType::LENGTH_DELIMITED {
             my $length = read-varint($buffer, $offset);
             ($offset, $length);
         }
 
         # XXXX: Groups (unsupported, deprecated by Google)
-        when 3|4 { die "XXXX: Can't handle groups (wire type $_)" }
+        when WireType::START_GROUP | WireType::END_GROUP {
+            die "XXXX: Can't handle groups (wire type $_)"
+        }
 
         default  {
             fail X::PB::Binary::Invalid.new(:offset($orig-offset),

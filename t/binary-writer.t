@@ -1,6 +1,7 @@
 use v6;
 
 use Test;
+use PB::Binary::WireTypes;
 use PB::Binary::Writer;
 
 
@@ -48,7 +49,7 @@ is $offset, 3, '... and offset was updated correctly';
 
 $buffer := buf8.new();
 $offset  = 0;
-write-pair($buffer, $offset, 1, 0, 150);
+write-pair($buffer, $offset, 1, WireType::VARINT, 150);
 my $trivial := buf8.new(0x08, 0x96, 0x01);
 is_deeply $buffer, $trivial, 'Wrote trivial buffer correctly';
 is $offset, 3, '... and offset was updated correctly';
@@ -77,8 +78,8 @@ is $offset, 14, '... and offset was updated correctly';
 
 $buffer := buf8.new();
 $offset  = 0;
-write-pair($buffer, $offset, 1, 5, 0x12345678);
-write-pair($buffer, $offset, 2, 1, 0x12345678BEEFCAFE);
+write-pair($buffer, $offset, 1, WireType::FIXED_32, 0x12345678);
+write-pair($buffer, $offset, 2, WireType::FIXED_64, 0x12345678BEEFCAFE);
 my $fixed-fields := buf8.new(0x0D, 0x78, 0x56, 0x34, 0x12,
                              0x11, 0xFE, 0xCA, 0xEF, 0xBE,
                                    0x78, 0x56, 0x34, 0x12);
@@ -101,7 +102,7 @@ is $offset, 8, '... and offset was updated correctly';
 
 $buffer := buf8.new();
 $offset  = 0;
-write-pair($buffer, $offset, 2, 2, '«①🚀»'.encode);
+write-pair($buffer, $offset, 2, WireType::LENGTH_DELIMITED, '«①🚀»'.encode);
 is $buffer[0], 18, 'Wrote field key for length delimited field correctly';
 is $buffer[1], 11, 'Wrote field length correctly';
 is $buffer.subbuf(2).decode, '«①🚀»', "Wrote utf-8 string correctly";
