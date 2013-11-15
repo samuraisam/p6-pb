@@ -1,5 +1,4 @@
 use Test;
-use File::Spec;
 use PB::Grammar;
 
 # to automate the testing of this grammar
@@ -10,7 +9,7 @@ if run('which', 'svn') == 0 {
     say 'svn is installed... checking for protobuf repo';
 
     my $absdir = $?FILE.path.absolute.directory;
-    my $pbdir = File::Spec.os.join: '', $absdir, 'data/protobuf-read-only';
+    my $pbdir = IO::Spec.join: '', $absdir, 'data/protobuf-read-only';
 
     if !grep 'protobuf-read-only', dir $absdir {
         run 'svn', 'checkout', 'http://protobuf.googlecode.com/svn/trunk/', $pbdir;
@@ -18,7 +17,7 @@ if run('which', 'svn') == 0 {
         run 'svn', 'update', $pbdir;
     }
 
-    my $srcdir = File::Spec.os.join: '', $pbdir, 'src/google/protobuf';
+    my $srcdir = IO::Spec.join: '', $pbdir, 'src/google/protobuf';
     my @files = dir $srcdir, :test(/proto$/);
 
     for @files -> $path {
