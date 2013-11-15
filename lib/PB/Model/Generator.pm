@@ -1,7 +1,11 @@
+use Metamodel::Perlable;
+
 use PB;
 use PB::Grammar;
 use PB::Actions;
+use PB::Message;
 use PB::Model::Package;
+use PB::Model::Message;
 
 my Str constant ANON_NAME = '<anon>';
 
@@ -19,21 +23,71 @@ class PB::Model::Generator {
     }
 
     multi method gen-class(PB::Model::Package $pkg) {
-        my $name := $.gen-class-name($pkg);
-        my $type := Metamodel::ClassHOW.new_type(:$name);
+        my $name  := $.gen-class-name($pkg);
+        my $class := Metamodel::PerlableClassHOW.new_type(:$name);
+        $class.HOW.add_parent($class, Any);
 
-        $type.HOW.compose($type);
-        
-        take $name, $type;
+        $class.^compose;
+        say $class.^perl;
+        take $name, $class;
         
         $.gen-class($_) for $pkg.messages;
     }
 
     multi method gen-class(PB::Model::Message $msg) {
-        my $name := $.gen-class-name($msg);
-        my $type := Metamodel::ClassHOW.new_type(:$name);
-        $type.HOW.compose($type);
-        take $name, $type;
+        my $name  := $.gen-class-name($msg);
+        my $class := Metamodel::PerlableClassHOW.new_type(:$name);
+        $class.HOW.add_parent($class, PB::Message);
+
+        my enum  PB::RepeatClass < REQUIRED OPTIONAL REPEATED >;
+        my class PB::Attribute is Attribute
+            does Metamodel::PerlableAttribute {
+
+            has Str             $.pb_type   is rw;
+            has Int             $.pb_number is rw;
+            has PB::RepeatClass $.pb_repeat is rw;
+
+            method traits_perl() {
+                my $traits = callsame;
+                $traits ~= " is pb_type($.pb_type.perl())" if $.pb_type;
+                $traits ~= " is pb_number($.pb_number)"
+                    if $.pb_number.defined;
+                $traits ~= " is pb_repeat($.pb_repeat)"
+                    if $.pb_repeat.defined;
+                $traits;
+            }
+        }
+
+        for $msg.fields -> $field {
+            my $pb_type = $field.type;
+            my $type = do given $pb_type {
+                when 'bool'           { Bool }
+                when 'float'|'double' { Num  }
+                when 'int32'|'uint32'|'sint32'|'fixed32'|'sfixed32'
+                    |'int64'|'uint64'|'sint64'|'fixed64'|'sfixed64'
+                                      { Int  }
+                when 'string'         { Str  }
+                when 'bytes'          { buf8 }
+                default               { Any  }
+            };
+
+            my $repeat = do given $field.label {
+                when 'required' { REQUIRED }
+                when 'optional' { OPTIONAL }
+                when 'repeated' { REPEATED }
+            }
+
+            my $attr = PB::Attribute.new(:name('$!' ~ $field.name), :$type,
+                                         :package($class), :has_accessor);
+            $attr.pb_type   = $pb_type;
+            $attr.pb_number = $field.number;
+            $attr.pb_repeat = $repeat;
+            $attr.set_rw;
+            $class.^add_attribute($attr);
+        }
+        $class.^compose;
+        say $class.^perl;
+        take $name, $class;
     }
 }
 
@@ -49,7 +103,7 @@ our sub EXPORT(*@args) {
     my $gen = PB::Model::Generator.new(:$ast, :prefix(@args[1] // ''));
 
     # export these symbols
-    %(gather for $gen.all-classes -> $name, $type { 
-        take '&' ~ $name => sub { $type } unless $name eq ANON_NAME;
+    %(gather for $gen.all-classes -> $name, $class {
+        take '&' ~ $name => sub { $class } unless $name eq ANON_NAME;
     });
 }
