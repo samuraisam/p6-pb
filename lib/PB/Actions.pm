@@ -166,7 +166,7 @@ class PB::Actions {
     }
 
     method int-lit:sym<oct>($/) {
-        make :8($<digit>.join);
+        make :8($<digit>.join || '0');
     }
 
     method constant:sym<nan>($/) {
