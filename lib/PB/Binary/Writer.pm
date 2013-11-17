@@ -5,6 +5,7 @@ use v6;
 module PB::Binary::Writer;
 
 use PB::Binary::WireTypes;
+use PB::Message;
 
 
 #= Convert (field tag number, wire type) to a single field key
@@ -106,5 +107,64 @@ sub write-pair(buf8 $buffer, Int $offset is rw, int $field-tag, int $wire-type,
         }
 
         default { die "Invalid wire type $_" }
+    }
+}
+
+
+#= Write an entire message to a buffer at a given offset, updating the offset
+sub write-message(buf8 $buffer, Int $offset is rw, PB::Message $message) is export {
+    my  @fields := $message.^ordered-fields;
+    for @fields -> $field {
+        my int $tag = $field.pb_number;
+        my $repeat  = $field.pb_repeat;
+        my $value   = $message."$field.pb_name()"();
+
+        if !$value.defined {
+            die "Cannot have an undefined value for required field"
+                if $repeat ~~ PB::RepeatClass::REQUIRED;
+            next;
+        }
+
+        given $field.pb_type {
+            # XXXX: What about packed types?
+            # XXXX: What about repeated types?
+            when 'bool' {
+                write-pair($buffer, $offset, $tag,
+                           WireType::VARINT, +(?$value));
+            }
+            when 'int32'|'int64'|'uint32'|'uint64' {
+                write-pair($buffer, $offset, $tag,
+                           WireType::VARINT, $value);
+            }
+            when 'sint32'|'sint64' {
+                write-pair($buffer, $offset, $tag,
+                           WireType::VARINT, encode-zigzag($value));
+            }
+            when 'fixed64'|'sfixed64' {
+                write-pair($buffer, $offset, $tag,
+                           WireType::FIXED_64, $value);
+            }
+            when 'fixed32'|'sfixed32' {
+                write-pair($buffer, $offset, $tag,
+                           WireType::FIXED_32, $value);
+            }
+            when 'string' {
+                write-pair($buffer, $offset, $tag,
+                           WireType::LENGTH_DELIMITED, $value.encode);
+            }
+            when 'bytes' {
+                write-pair($buffer, $offset, $tag,
+                           WireType::LENGTH_DELIMITED, $value);
+            }
+            when 'enum' {
+                die "XXXX: Don't know how to deal with enum field types";
+            }
+            when 'float'|'double' {
+                die "XXXX: Don't know how to deal with floating point type '$_'";
+            }
+            default {
+                die "XXXX: Don't know how to deal with embedded messages (field type '$_')";
+            }
+        }
     }
 }
