@@ -164,7 +164,10 @@ sub write-message(buf8 $buffer, Int $offset is rw, PB::Message $message) is expo
                 die "XXXX: Don't know how to deal with floating point type '$_'";
             }
             default {
-                die "XXXX: Don't know how to deal with embedded messages (field type '$_')";
+                my $sub-buf = buf8.new;
+                write-message($sub-buf, (my $ = 0), $value);
+                write-pair($buffer, $offset, $tag,
+                           WireType::LENGTH_DELIMITED, $sub-buf);
             }
         }
     }
