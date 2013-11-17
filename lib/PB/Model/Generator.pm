@@ -35,21 +35,19 @@ class PB::Model::Generator {
     }
 
     multi method gen-class(PB::Model::Message $msg) {
-        my $name  := $.gen-class-name($msg);
-        my $class := Metamodel::PerlableClassHOW.new_type(:$name);
-        $class.HOW.add_parent($class, PB::Message);
-
         my enum  PB::RepeatClass < REQUIRED OPTIONAL REPEATED >;
         my class PB::Attribute is Attribute
             does Metamodel::PerlableAttribute {
 
             has Str             $.pb_type   is rw;
+            has Str             $.pb_name   is rw;
             has Int             $.pb_number is rw;
             has PB::RepeatClass $.pb_repeat is rw;
 
             method traits_perl() {
                 my $traits = callsame;
                 $traits ~= " is pb_type($.pb_type.perl())" if $.pb_type;
+                $traits ~= " is pb_name($.pb_name.perl())" if $.pb_name;
                 $traits ~= " is pb_number($.pb_number)"
                     if $.pb_number.defined;
                 $traits ~= " is pb_repeat($.pb_repeat)"
@@ -57,6 +55,23 @@ class PB::Model::Generator {
                 $traits;
             }
         }
+
+        my class PB::MessageClassHOW is Metamodel::PerlableClassHOW {
+            has @.ordered-fields;
+
+            method compose(|) {
+                my $class = callsame;
+
+                @!ordered-fields :=
+                    self.attributes($class).grep(*.has_accessor).sort(*.pb_number);
+
+                $class;
+            }
+        }
+
+        my $name  := $.gen-class-name($msg);
+        my $class := PB::MessageClassHOW.new_type(:$name);
+        $class.HOW.add_parent($class, PB::Message);
 
         for $msg.fields -> $field {
             my $pb_type = $field.type;
@@ -80,6 +95,7 @@ class PB::Model::Generator {
             my $attr = PB::Attribute.new(:name('$!' ~ $field.name), :$type,
                                          :package($class), :has_accessor);
             $attr.pb_type   = $pb_type;
+            $attr.pb_name   = $field.name;
             $attr.pb_number = $field.number;
             $attr.pb_repeat = $repeat;
             $attr.set_rw;
