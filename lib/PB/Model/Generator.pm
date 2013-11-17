@@ -19,6 +19,7 @@ class PB::Model::Generator {
     }
 
     method gen-class-name($obj) {
+        # XXXX: What about class redefinition?
         # say 'prefix: ', $.prefix ~ $obj.name;
         $obj.name || ANON_NAME;
     }
@@ -29,7 +30,7 @@ class PB::Model::Generator {
         $class.HOW.add_parent($class, Any);
 
         $class.^compose;
-        say $class.^perl;
+        # say $class.^perl;
         take $name, $class;
         
         $.gen-class($_) for $pkg.messages;
@@ -103,7 +104,7 @@ class PB::Model::Generator {
             $class.^add_attribute($attr);
         }
         $class.^compose;
-        say $class.^perl;
+        # say $class.^perl;
         take $name, $class;
     }
 }
