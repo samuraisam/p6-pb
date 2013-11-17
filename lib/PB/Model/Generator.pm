@@ -57,8 +57,9 @@ class PB::Model::Generator {
         }
 
         my class PB::MessageClassHOW is Metamodel::PerlableClassHOW {
-            has @.ordered-fields;
+            has @!ordered-fields;
 
+            method ordered-fields($class) { @!ordered-fields }
             method compose(|) {
                 my $class = callsame;
 
@@ -75,7 +76,7 @@ class PB::Model::Generator {
 
         for $msg.fields -> $field {
             my $pb_type = $field.type;
-            my $type = do given $pb_type {
+            my $type := do given $pb_type {
                 when 'bool'           { Bool }
                 when 'float'|'double' { Num  }
                 when 'int32'|'uint32'|'sint32'|'fixed32'|'sfixed32'
@@ -86,7 +87,7 @@ class PB::Model::Generator {
                 default               { Any  }
             };
 
-            my $repeat = do given $field.label {
+            my $repeat := do given $field.label {
                 when 'required' { REQUIRED }
                 when 'optional' { OPTIONAL }
                 when 'repeated' { REPEATED }
