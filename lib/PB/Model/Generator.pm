@@ -6,6 +6,7 @@ use PB::Actions;
 use PB::Message;
 use PB::Model::Package;
 use PB::Model::Message;
+use PB::RepeatClasses;
 
 my Str constant ANON_NAME = '<anon>';
 
@@ -35,14 +36,13 @@ class PB::Model::Generator {
     }
 
     multi method gen-class(PB::Model::Message $msg) {
-        my enum  PB::RepeatClass < REQUIRED OPTIONAL REPEATED >;
         my class PB::Attribute is Attribute
             does Metamodel::PerlableAttribute {
 
-            has Str             $.pb_type   is rw;
-            has Str             $.pb_name   is rw;
-            has Int             $.pb_number is rw;
-            has PB::RepeatClass $.pb_repeat is rw;
+            has Str         $.pb_type   is rw;
+            has Str         $.pb_name   is rw;
+            has Int         $.pb_number is rw;
+            has RepeatClass $.pb_repeat is rw;
 
             method traits_perl() {
                 my $traits = callsame;
@@ -88,9 +88,9 @@ class PB::Model::Generator {
             };
 
             my $repeat := do given $field.label {
-                when 'required' { REQUIRED }
-                when 'optional' { OPTIONAL }
-                when 'repeated' { REPEATED }
+                when 'required' { RepeatClass::REQUIRED }
+                when 'optional' { RepeatClass::OPTIONAL }
+                when 'repeated' { RepeatClass::REPEATED }
             }
 
             my $attr = PB::Attribute.new(:name('$!' ~ $field.name), :$type,

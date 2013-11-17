@@ -6,6 +6,7 @@ module PB::Binary::Writer;
 
 use PB::Binary::WireTypes;
 use PB::Message;
+use PB::RepeatClasses;
 
 
 #= Convert (field tag number, wire type) to a single field key
@@ -120,8 +121,8 @@ sub write-message(buf8 $buffer, Int $offset is rw, PB::Message $message) is expo
         my $value   = $message."$field.pb_name()"();
 
         if !$value.defined {
-            die "Cannot have an undefined value for required field"
-                if $repeat ~~ PB::RepeatClass::REQUIRED;
+            die "Cannot have an undefined value for required field '$field.pb_name()'"
+                if $repeat ~~ RepeatClass::REQUIRED;
             next;
         }
 
