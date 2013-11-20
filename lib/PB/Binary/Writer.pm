@@ -9,6 +9,16 @@ use PB::Message;
 use PB::RepeatClasses;
 
 
+# hash() to work around https://rt.perl.org/Public/Bug/Display.html?id=111944
+constant %WIRE_TYPE = hash(
+    ($_ => WireType::VARINT
+     for < bool int32 sint32 uint32 int64 sint64 uint64 >),
+    ($_ => WireType::FIXED_32 for < fixed32 sfixed32 >),
+    ($_ => WireType::FIXED_64 for < fixed64 sfixed64 >),
+    ($_ => WireType::LENGTH_DELIMITED for < string bytes DEFAULT >),
+);
+
+
 #= Convert (field tag number, wire type) to a single field key
 sub encode-field-key(int $field-tag, int $wire-type --> int) is pure is export {
     $field-tag +< 3 +| $wire-type
@@ -18,6 +28,29 @@ sub encode-field-key(int $field-tag, int $wire-type --> int) is pure is export {
 #= Encode a zigzag-encoded signed number
 sub encode-zigzag(int $value --> int) is pure is export {
     ($value +< 1) +^ ($value +> 63)
+}
+
+
+#= Encode a value of an arbitrary field type
+sub encode-value(Str $field-type, Mu $value --> Mu) is pure is export {
+    given $field-type {
+        when 'int32'|'uint32'|'fixed32'|'sfixed32'
+            |'int64'|'uint64'|'fixed64'|'sfixed64'
+            |'bytes'           { $value }
+        when 'bool'            { +(?$value) }
+        when 'sint32'|'sint64' { encode-zigzag($value) }
+        when 'string'          { $value.encode }
+        when 'enum' {
+            die "XXXX: Don't know how to deal with enum field types";
+        }
+        when 'float'|'double' {
+            die "XXXX: Don't know how to deal with floating point type '$_'";
+        }
+        default {
+            write-message((my $sub-buf = buf8.new), (my $ = 0), $value);
+            $sub-buf;
+        }
+    }
 }
 
 
@@ -116,9 +149,8 @@ sub write-pair(buf8 $buffer, Int $offset is rw, int $field-tag, int $wire-type,
 sub write-message(buf8 $buffer, Int $offset is rw, PB::Message $message) is export {
     my  @fields := $message.^ordered-fields;
     for @fields -> $field {
-        my int $tag = $field.pb_number;
-        my $repeat  = $field.pb_repeat;
-        my $value   = $message."$field.pb_name()"();
+        my $repeat = $field.pb_repeat;
+        my $value  = $message."$field.pb_name()"();
 
         if !$value.defined {
             die "Cannot have an undefined value for required field '$field.pb_name()'"
@@ -126,49 +158,25 @@ sub write-message(buf8 $buffer, Int $offset is rw, PB::Message $message) is expo
             next;
         }
 
-        given $field.pb_type {
-            # XXXX: What about packed types?
-            # XXXX: What about repeated types?
-            when 'bool' {
-                write-pair($buffer, $offset, $tag,
-                           WireType::VARINT, +(?$value));
+        my $type          = $field.pb_type;
+        my $wire-type     = %WIRE_TYPE{$type} // %WIRE_TYPE<DEFAULT>;
+
+        if $repeat ~~ RepeatClass::REPEATED {
+            # XXXX: What about packed fields?
+            for @$value {
+                my $encoded-value = encode-value($type, $_);
+                # say "Wire type is $wire-type, value is {$encoded-value.perl}";
+
+                write-pair($buffer, $offset, $field.pb_number,
+                           $wire-type, $encoded-value);
             }
-            when 'int32'|'int64'|'uint32'|'uint64' {
-                write-pair($buffer, $offset, $tag,
-                           WireType::VARINT, $value);
-            }
-            when 'sint32'|'sint64' {
-                write-pair($buffer, $offset, $tag,
-                           WireType::VARINT, encode-zigzag($value));
-            }
-            when 'fixed64'|'sfixed64' {
-                write-pair($buffer, $offset, $tag,
-                           WireType::FIXED_64, $value);
-            }
-            when 'fixed32'|'sfixed32' {
-                write-pair($buffer, $offset, $tag,
-                           WireType::FIXED_32, $value);
-            }
-            when 'string' {
-                write-pair($buffer, $offset, $tag,
-                           WireType::LENGTH_DELIMITED, $value.encode);
-            }
-            when 'bytes' {
-                write-pair($buffer, $offset, $tag,
-                           WireType::LENGTH_DELIMITED, $value);
-            }
-            when 'enum' {
-                die "XXXX: Don't know how to deal with enum field types";
-            }
-            when 'float'|'double' {
-                die "XXXX: Don't know how to deal with floating point type '$_'";
-            }
-            default {
-                my $sub-buf = buf8.new;
-                write-message($sub-buf, (my $ = 0), $value);
-                write-pair($buffer, $offset, $tag,
-                           WireType::LENGTH_DELIMITED, $sub-buf);
-            }
+        }
+        else {
+            my $encoded-value = encode-value($type, $value);
+            # say "Wire type is $wire-type, value is {$encoded-value.perl}";
+
+            write-pair($buffer, $offset, $field.pb_number,
+                       $wire-type, $encoded-value);
         }
     }
 }
