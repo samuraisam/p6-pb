@@ -85,6 +85,7 @@ class PB::Model::Generator {
                                       { Int  }
                 when 'string'         { Str  }
                 when 'bytes'          { buf8 }
+                # XXXX: Should this be PB::Message instead of Any?
                 default               { Any  }
             };
 
