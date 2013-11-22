@@ -44,6 +44,7 @@ class PB::Model::Generator {
             has Str         $.pb_name   is rw;
             has Int         $.pb_number is rw;
             has RepeatClass $.pb_repeat is rw;
+            has Bool        $.pb_packed is rw;
 
             method traits_perl() {
                 my $traits = callsame;
@@ -53,6 +54,7 @@ class PB::Model::Generator {
                     if $.pb_number.defined;
                 $traits ~= " is pb_repeat($.pb_repeat)"
                     if $.pb_repeat.defined;
+                $traits ~= " is pb_packed($.pb_packed)" if $.pb_packed;
                 $traits;
             }
         }
@@ -101,6 +103,7 @@ class PB::Model::Generator {
             $attr.pb_name   = $field.name;
             $attr.pb_number = $field.number;
             $attr.pb_repeat = $repeat;
+            $attr.pb_packed = so $field.options.grep: *.name eq 'packed';
             $attr.set_rw;
             $class.^add_attribute($attr);
         }

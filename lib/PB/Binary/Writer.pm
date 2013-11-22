@@ -151,32 +151,71 @@ sub write-pair(buf8 $buffer, Int $offset is rw, int $field-tag, int $wire-type,
 sub write-message(buf8 $buffer, Int $offset is rw, PB::Message $message) is export {
     my  @fields := $message.^ordered-fields;
     for @fields -> $field {
+        my $name   = $field.pb_name;
         my $repeat = $field.pb_repeat;
-        my $value  = $message."$field.pb_name()"();
+        my $value  = $message."$name"();
 
         if !$value.defined {
-            die "Cannot have an undefined value for required field '$field.pb_name()'"
+            die "Cannot have an undefined value for required field '$name'"
                 if $repeat ~~ RepeatClass::REQUIRED;
             next;
         }
 
-        my $type          = $field.pb_type;
-        my $wire-type     = %WIRE_TYPE{$type} // %WIRE_TYPE<DEFAULT>;
+        my $type      = $field.pb_type;
+        my $field-tag = $field.pb_number;
+        my $wire-type = %WIRE_TYPE{$type} // %WIRE_TYPE<DEFAULT>;
 
         if $repeat ~~ RepeatClass::REPEATED {
-            # XXXX: What about packed fields?
-            for @$value {
-                my $encoded-value = encode-value($type, $_);
-                # say "Wire type is $wire-type, value is {$encoded-value.perl}";
+            if $field.pb_packed {
+                # Don't write header of 0-entry packed fields
+                next unless @$value;
 
-                write-pair($buffer, $offset, $field.pb_number,
-                           $wire-type, $encoded-value);
+                # Packed repeated: field-key, length, array of values
+                write-varint($buffer, $offset,
+                             encode-field-key($field-tag, $wire-type));
+
+                given $wire-type {
+                    when WireType::FIXED_32 {
+                        write-varint($buffer, $offset, 4 * @$value);
+                        for @$value {
+                            my $encoded-value = encode-value($type, $_);
+                            write-fixed32($buffer, $offset, $encoded-value);
+                        }
+                    }
+                    when WireType::FIXED_64 {
+                        write-varint($buffer, $offset, 8 * @$value);
+                        for @$value {
+                            my $encoded-value = encode-value($type, $_);
+                            write-fixed64($buffer, $offset, $encoded-value);
+                        }
+                    }
+                    when WireType::VARINT {
+                        my $sub-buf    = buf8.new;
+                        my $sub-offset = 0;
+                        for @$value {
+                            my $encoded-value = encode-value($type, $_);
+                            write-varint($sub-buf, $sub-offset, $encoded-value);
+                        }
+                        write-varint($buffer, $offset, +@$sub-buf);
+                        write-blob8($buffer, $offset, $sub-buf);
+                    }
+                    when WireType::LENGTH_DELIMITED {
+                        die "Packing not allowed for repeated length delimited field '$name' (type '$type')";
+                    }
+                }
+            }
+            else {
+                # Unpacked repeated: array of field-key/encoded-value pairs
+                for @$value {
+                    my $encoded-value = encode-value($type, $_);
+                    write-pair($buffer, $offset, $field.pb_number,
+                               $wire-type, $encoded-value);
+                }
             }
         }
         else {
+            # Required or optional: single field-key/encoded-value pair
             my $encoded-value = encode-value($type, $value);
-            # say "Wire type is $wire-type, value is {$encoded-value.perl}";
-
             write-pair($buffer, $offset, $field.pb_number,
                        $wire-type, $encoded-value);
         }
