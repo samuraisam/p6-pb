@@ -12,7 +12,7 @@ use PB::RepeatClasses;
 # hash() to work around https://rt.perl.org/Public/Bug/Display.html?id=111944
 constant %WIRE_TYPE = hash(
     ($_ => WireType::VARINT
-     for < bool int32 sint32 uint32 int64 sint64 uint64 >),
+     for < bool enum int32 sint32 uint32 int64 sint64 uint64 >),
     ($_ => WireType::FIXED_32 for < fixed32 sfixed32 >),
     ($_ => WireType::FIXED_64 for < fixed64 sfixed64 >),
     ($_ => WireType::LENGTH_DELIMITED for < string bytes DEFAULT >),
@@ -37,13 +37,11 @@ sub encode-value(Str $field-type, Mu $value --> Mu) is pure is export {
         when 'int32'|'uint32'|'fixed32'|'sfixed32'
             |'int64'|'uint64'|'fixed64'|'sfixed64'
             |'bytes'           { $value }
+        when 'enum'            { +$value }
         when 'bool'            { +(?$value) }
         when 'sint32'|'sint64' { encode-zigzag($value) }
         when 'string'          { $value.encode }
-        when 'enum' {
-            die "XXXX: Don't know how to deal with enum field types";
-        }
-        when 'float'|'double' {
+        when 'float'|'double'  {
             die "XXXX: Don't know how to deal with floating point type '$_'";
         }
         default {
