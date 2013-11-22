@@ -18,6 +18,8 @@ constant %WIRE_TYPE = hash(
     ($_ => WireType::LENGTH_DELIMITED for < string bytes DEFAULT >),
 );
 
+constant BIT_MASK_64_BITS = 1 +< 64 - 1;
+
 
 #= Convert (field tag number, wire type) to a single field key
 sub encode-field-key(int $field-tag, int $wire-type --> int) is pure is export {
@@ -55,9 +57,11 @@ sub encode-value(Str $field-type, Mu $value --> Mu) is pure is export {
 #= Write a varint into a buffer at a given offset, updating the offset
 sub write-varint(buf8 $buffer, Int $offset is rw, int $value) is export {
     my $buf := nqp::decont($buffer);
+    # Avoid infinite loop on negative values
+    $value = $value +& BIT_MASK_64_BITS;
+
     repeat while $value {
         my int $byte = $value +& 127;
-        # XXXX: What about negative $value?
         $value = $value +>   7;
         $byte  = $byte  +| 128 if $value;
         nqp::bindpos_i($buf, $offset++, $byte);
