@@ -10,7 +10,8 @@ role Metamodel::PerlableAttribute {
     }
 
     method perl(Metamodel::PerlableAttribute:D:) {
-        my $type   = self.type.HOW.name(self.type);
+        my $of     = self.container_descriptor.of;
+        my $type   = $of.HOW.name($of);
         my $name   = self.name;
            $name  .= subst('!', '.') if self.has_accessor;
         my $traits = self.traits_perl;
