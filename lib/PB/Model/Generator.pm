@@ -152,6 +152,6 @@ our sub EXPORT(*@args) {
 
     # export these symbols
     %(gather for $gen.all-classes -> $name, $class {
-        take '&' ~ $name => sub { $class } unless $name eq ANON_NAME;
+        take $name => $class unless $name eq ANON_NAME;
     });
 }
