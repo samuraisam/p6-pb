@@ -54,7 +54,7 @@ class PB::Model::Generator {
                     if $.pb_number.defined;
                 $traits ~= " is pb_repeat($.pb_repeat)"
                     if $.pb_repeat.defined;
-                $traits ~= " is pb_packed($.pb_packed)" if $.pb_packed;
+                $traits ~= " is pb_packed" if $.pb_packed;
                 $traits;
             }
         }
