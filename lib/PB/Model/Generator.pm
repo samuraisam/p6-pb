@@ -73,8 +73,8 @@ class PB::Model::Generator {
             }
         }
 
-        my $name  := $.gen-class-name($msg);
-        my $class := PB::MessageClassHOW.new_type(:$name);
+        my $class-name := $.gen-class-name($msg);
+        my $class      := PB::MessageClassHOW.new_type(:name($class-name));
         $class.HOW.add_parent($class, PB::Message);
 
         for $msg.fields -> $field {
@@ -109,7 +109,7 @@ class PB::Model::Generator {
         }
         $class.^compose;
         # say $class.^perl;
-        take $name, $class;
+        take $class-name, $class;
     }
 }
 
