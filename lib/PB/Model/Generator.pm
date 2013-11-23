@@ -97,8 +97,34 @@ class PB::Model::Generator {
                 when 'repeated' { RepeatClass::REPEATED }
             }
 
-            my $attr = PB::Attribute.new(:name('$!' ~ $field.name), :$type,
-                                         :package($class), :has_accessor);
+            my ($sigil, $container, $constraint);
+            if $repeat ~~ RepeatClass::REPEATED {
+                # XXXX: Specifically not parameterizing this to avoid
+                # XXXX: constraint checking bugs and unintuitiveness
+                $sigil       = '@';
+                $container  := Array;
+                $constraint := Positional;
+            }
+            else {
+                $sigil       = '$';
+                $container  := Scalar;
+                $constraint := $type;
+            }
+
+            my $attr-name = $sigil ~ '!' ~ $field.name;
+            my Mu $cd    := ContainerDescriptor.new(:name($attr-name), :rw,
+                                                    :of($type),
+                                                    :default($type));
+            my Mu $cont  := nqp::create($container);
+            nqp::bindattr($cont, $container, '$!descriptor', $cd);
+            nqp::bindattr($cont, $container, '$!value', $type)
+                if $container =:= Scalar;
+
+            my Mu $attr  := PB::Attribute.new(:name($attr-name),
+                                              :type($constraint),
+                                              :package($class), :has_accessor,
+                                              :auto_viv_container($cont),
+                                              :container_descriptor($cd));
             $attr.pb_type   = $pb_type;
             $attr.pb_name   = $field.name;
             $attr.pb_number = $field.number;
