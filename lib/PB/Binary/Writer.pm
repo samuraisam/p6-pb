@@ -171,8 +171,9 @@ sub write-message(buf8 $buffer, Int $offset is rw, PB::Message $message) is expo
                 next unless @$value;
 
                 # Packed repeated: field-key, length, array of values
-                write-varint($buffer, $offset,
-                             encode-field-key($field-tag, $wire-type));
+                my $field-key = encode-field-key($field-tag,
+                                                 WireType::LENGTH_DELIMITED);
+                write-varint($buffer, $offset, $field-key);
 
                 given $wire-type {
                     when WireType::FIXED_32 {
