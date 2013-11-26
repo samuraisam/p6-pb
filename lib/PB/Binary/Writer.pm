@@ -20,7 +20,8 @@ sub encode-field-key(int $field-tag, int $wire-type --> int) is pure is export {
 
 #= Encode a zigzag-encoded signed number
 sub encode-zigzag(int $value --> int) is pure is export {
-    ($value +< 1) +^ ($value +> 63)
+       ($value +< 1)  +& BIT_MASK_64_BITS
+    +^ ($value +> 63) +& BIT_MASK_64_BITS;
 }
 
 
