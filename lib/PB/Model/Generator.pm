@@ -61,13 +61,17 @@ class PB::Model::Generator {
 
         my class PB::MessageClassHOW is Metamodel::PerlableClassHOW {
             has @!ordered-fields;
+            has %!fields-by-tag;
 
             method ordered-fields($class) { @!ordered-fields }
+            method fields-by-tag($class)  { %!fields-by-tag  }
             method compose(|) {
                 my $class = callsame;
 
                 @!ordered-fields :=
-                    self.attributes($class).grep(*.has_accessor).sort(*.pb_number);
+                    self.attributes($class).grep(*.has_accessor)\
+                    .grep({ $_.name !~~ m/'-'/ }).sort(*.pb_number);
+                %!fields-by-tag{.pb_number} = $_ for @!ordered-fields;
 
                 $class;
             }
