@@ -10,7 +10,8 @@ role Metamodel::PerlableAttribute {
     }
 
     method perl(Metamodel::PerlableAttribute:D:) {
-        my $of     = self.container_descriptor.of;
+        my $has_cd = nqp::can(self, 'container_descriptor');
+        my $of     = $has_cd ?? self.container_descriptor.of !! self.type;
         my $type   = $of.HOW.name($of);
         my $name   = self.name;
            $name  .= subst('!', '.') if self.has_accessor;
