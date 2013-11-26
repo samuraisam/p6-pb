@@ -9,15 +9,6 @@ use PB::Message;
 use PB::RepeatClasses;
 
 
-# hash() to work around https://rt.perl.org/Public/Bug/Display.html?id=111944
-constant %WIRE_TYPE = hash(
-    ($_ => WireType::VARINT
-     for < bool enum int32 sint32 uint32 int64 sint64 uint64 >),
-    ($_ => WireType::FIXED_32 for < fixed32 sfixed32 >),
-    ($_ => WireType::FIXED_64 for < fixed64 sfixed64 >),
-    ($_ => WireType::LENGTH_DELIMITED for < string bytes DEFAULT >),
-);
-
 constant BIT_MASK_64_BITS = 1 +< 64 - 1;
 
 
