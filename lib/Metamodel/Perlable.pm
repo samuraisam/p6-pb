@@ -29,7 +29,7 @@ role Metamodel::PerlableClass {
         $perl ~= " is $_.^name()"   for $class.^parents;
         $perl ~= " does $_.^name()" for $class.^roles;
         $perl ~= " \{\n";
-        for $class.^attributes -> $attr {
+        for $class.^attributes.grep(Metamodel::PerlableAttribute) -> $attr {
             my $attr_perl = $attr.perl;
             if $class.defined {
                 my $attr_name = $attr.name;
