@@ -6,11 +6,13 @@ module PB::Binary::Reader;
 
 use PB::Binary::WireTypes;
 use PB::Message;
-
+use PB::RepeatClasses;
 
 # SECURITY: Depends on the behavior of Blob.[] returning 0 for out of bounds
 #           access (which e.g. makes read-varint self-terminate if it runs
-#           off the end of the blob).
+#           off the end of the blob).  This must remain true even if the blob
+#           is a subblob/subbuf.
+#           XXXX: Tests to check this never regresses?
 
 
 class X::PB::Binary::Invalid is Exception {
@@ -63,7 +65,8 @@ sub decode-value(Str $field-type, Mu $value --> Mu) is pure is export {
         }
         default {
             # XXXX: How to look up message type from string type name?
-            read-message($value, (my $ = 0), PB::Message);  # message-type($field-type));
+            my $message-type = PB::Message;  # message-type($field-type);
+            read-message($message-type, $value, (my $ = 0))
         }
     }
 }
@@ -111,7 +114,7 @@ sub read-fixed64(blob8 $buffer, Int $offset is rw --> uint64) is export {
 #= Read a blob8 from a buffer at a given offset with a given length, updating the offset
 sub read-blob8(blob8 $buffer, Int $offset is rw, Int $length --> blob8) is export {
     my $blob := $buffer.subbuf($offset, $length);
-    $offset  += $length;
+    $offset  += min($length, $blob.elems);
     $blob;
 }
 
@@ -131,7 +134,7 @@ sub read-pair(blob8 $buffer, Int $offset is rw) is export {
         # Length-delimited
         when WireType::LENGTH_DELIMITED {
             my $length = read-varint($buffer, $offset);
-            ($offset, $length);
+            read-blob8($buffer, $offset, $length);
         }
 
         # XXXX: Groups (unsupported, deprecated by Google)
@@ -156,7 +159,7 @@ sub read-message(PB::Message $message-type, blob8 $buffer, Int $offset is rw,
     if $length.defined {
         my $sub-buf := $buffer.subbuf($offset, $length);
         $offset += @$sub-buf;
-        return read-message($sub-buf, (my $ = 0));
+        return read-message($message-type, $sub-buf, (my $ = 0));
     }
 
     my $message = $message-type.new;
@@ -171,16 +174,51 @@ sub read-message(PB::Message $message-type, blob8 $buffer, Int $offset is rw,
             next;
         }
 
-        my $expected-wiretype  = %WIRE_TYPE{$field.pb_type}
+        my $pb_type = $field.pb_type;
+        my $expected-wiretype  = %WIRE_TYPE{$pb_type}
                               // %WIRE_TYPE<DEFAULT>;
+
+        my $repeated = $field.pb_repeat ~~ RepeatClass::REPEATED;
+        my $packed = $repeated && $wire-type ~~ WireType::LENGTH_DELIMITED;
 
         fail X::PB::Binary::WireType::Mismatch.new(
             :offset($orig-offset), :$field, $:message-type,
             :buffer-wiretype($wire-type), :$expected-wiretype)
-            unless $wire-type ~~ $expected-wiretype
-                || $wire-type ~~ WireType::LENGTH_DELIMITED
-                   && $field.pb_packed;
+            unless $packed || $wire-type ~~ $expected-wiretype;
 
-        # XXXX: ...
+        my $name = $field.pb_name;
+        my $attr = $message."$name"();
+
+        # XXXX: Check for type mismatches?
+        # XXXX: Check for buffer overruns from bad length?
+        if $packed {
+            fail X::PB::Binary::Invalid.new(:$offset,
+                                            :reason("packed data for field with expected wiretype $expected-wiretype"))
+                unless $expected-wiretype ~~ WireType::VARINT
+                                           | WireType::FIXED_32
+                                           | WireType::FIXED_64;
+
+            my @array := $message."$name"();
+            my $sub-offset = 0;
+            my $sub-length = $value.elems;
+
+            # Seriously needs optimization
+            while $sub-offset < $sub-length {
+                my $raw-value = do given $expected-wiretype {
+                    when WireType::VARINT   { read-varint( $value, $sub-offset) }
+                    when WireType::FIXED_64 { read-fixed64($value, $sub-offset) }
+                    when WireType::FIXED_32 { read-fixed32($value, $sub-offset) }
+                    # No default; other cases blocked by guard above
+                }
+
+                @array.push(decode-value($pb_type, $raw-value));
+            }
+        }
+        elsif $repeated {
+            $message."$name"().push(decode-value($pb_type, $value));
+        }
+        else {
+            $message."$name"() = decode-value($pb_type, $value);
+        }
     }
 }
