@@ -32,7 +32,7 @@ class PB::Model::Generator {
         $class.^compose;
         # say $class.^perl;
         take $name, $class;
-        
+
         $.gen-class($_) for $pkg.messages;
     }
 
@@ -80,6 +80,21 @@ class PB::Model::Generator {
         my $class-name := $.gen-class-name($msg);
         my $class      := PB::MessageClassHOW.new_type(:name($class-name));
         $class.HOW.add_parent($class, PB::Message);
+
+        for $msg.enums -> $enum {
+            my $enum-name = $.gen-class-name($enum);
+            my $enum-class = Metamodel::PerlableClassHOW.new_type(:name($enum-name));
+            for $enum.fields -> $enum-field {
+                # my $meth = method () is rw { $enum-field.value }
+                # $meth.set_name($enum-field.name);
+                $enum-class.HOW.add_method($enum-class, $enum-field.name,
+                                           method () is rw { $enum-field.value });
+            }
+            # my $meth = method () is rw { $enum-class }
+            # $meth.set_name($enum-name);
+            $class.HOW.add_method($class, $enum-name,
+                                  method () is rw { $enum-class });
+        }
 
         for $msg.fields -> $field {
             my $pb_type = $field.type;
@@ -146,6 +161,7 @@ class PB::Model::Generator {
 # args = $filename!, $class-prefix?
 our sub EXPORT(*@args) {
     # parse file and generate the AST
+    # say @args;
     my $desc = slurp @args[0];
     my $actions := PB::Actions.new();
     my $ast := PB::Grammar.parse($desc, :$actions).ast;
@@ -156,6 +172,7 @@ our sub EXPORT(*@args) {
 
     # export these symbols
     %(gather for $gen.all-classes -> $name, $class {
+        # say "GEN $name $class";
         take $name => $class unless $name eq ANON_NAME;
     });
 }
