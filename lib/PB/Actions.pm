@@ -91,7 +91,7 @@ class PB::Actions {
         } elsif $<end> {
             $end = $<end>.Str.Int;
         }
-        my %args = {'start' => $<start>.Str.Int};
+        my %args = %('start' => $<start>.Str.Int);
         if $end {
             %args{'end'} = $end;
         }
